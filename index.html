@@ -470,8 +470,19 @@
 
 
   // ---------- КОНФИГУРАЦИЯ ----------
-  const TILE_CFG = { А:8, Б:2, В:4, Г:2, Д:4, Е:9, Ж:1, З:2, И:6, Й:1, К:4, Л:4, М:3, Н:5, О:10, П:4, Р:5, С:5, Т:5, У:4, Ф:1, Х:1, Ц:1, Ч:1, Ш:1, Щ:1, Ъ:1, Ы:2, Ь:2, Э:1, Ю:1, Я:2 };
-  const POINTS = { А:1, Б:3, В:2, Г:3, Д:2, Е:1, Ж:5, З:5, И:1, Й:4, К:3, Л:2, М:2, Н:1, О:1, П:2, Р:2, С:1, Т:1, У:3, Ф:10, Х:5, Ц:5, Ч:5, Ш:8, Щ:10, Ъ:10, Ы:4, Ь:3, Э:8, Ю:8, Я:6 };
+	const TILE_CFG = {
+	  А:10, Б:3, В:5, Г:3, Д:5, Е:9, Ж:2, З:2, И:8, Й:4,
+	  К:6, Л:4, М:5, Н:8, О:10, П:6, Р:6, С:6, Т:5, У:3,
+	  Ф:1, Х:2, Ц:1, Ч:2, Ш:1, Щ:1, Ъ:1, Ы:2, Ь:2,
+	  Э:1, Ю:1, Я:3
+	};
+
+	const POINTS = {
+	  А:1, Б:3, В:2, Г:3, Д:2, Е:1, Ж:5, З:5, И:1, Й:4,
+	  К:2, Л:2, М:2, Н:1, О:1, П:2, Р:2, С:2, Т:2, У:3,
+	  Ф:10, Х:5, Ц:10, Ч:5, Ш:10, Щ:10, Ъ:10, Ы:5, Ь:5,
+	  Э:10, Ю:10, Я:3
+	};
   const WIN_SCORE = 200;
 
   // ========== TRIE ДЛЯ БЫСТРОГО ПОИСКА ПРЕФИКСОВ ==========
@@ -571,7 +582,12 @@ let workerReadyPromise = null;
 function createScrabbleWorker() {
   const workerCode = `
     // ---------- ВОРКЕР: ПОЛНОСТЬЮ НЕЗАВИСИМАЯ ЛОГИКА ПОИСКА ХОДОВ ----------
-    const POINTS = { А:1, Б:3, В:2, Г:3, Д:2, Е:1, Ж:5, З:5, И:1, Й:4, К:3, Л:2, М:2, Н:1, О:1, П:2, Р:2, С:1, Т:1, У:3, Ф:10, Х:5, Ц:5, Ч:5, Ш:8, Щ:10, Ъ:10, Ы:4, Ь:3, Э:8, Ю:8, Я:6 };
+	const POINTS = {
+	  А:1, Б:3, В:2, Г:3, Д:2, Е:1, Ж:5, З:5, И:1, Й:4,
+	  К:2, Л:2, М:2, Н:1, О:1, П:2, Р:2, С:2, Т:2, У:3,
+	  Ф:10, Х:5, Ц:10, Ч:5, Ш:10, Щ:10, Ъ:10, Ы:5, Ь:5,
+	  Э:10, Ю:10, Я:3
+	};
     
     const BONUS_GRID = (() => {
       let grid = Array(15).fill().map(() => Array(15).fill(null));
@@ -1578,19 +1594,59 @@ async function loadDictionary() {
     setTimeout(() => aiMakeMove(), 600);
   }
 
-  function skipTurn() {
-    if (!dictReady) { showMsg("Словарь не загружен", true); return; }
-    if (game.gameOver) return;
-    if (game.currentPlayer !== 0) { showMsg("Сейчас ход ИИ", true); return; }
-    if (game.pendingPlaced.length > 0) {
-      showMsg("Сначала завершите или отмените выставленные фишки", true);
-      return;
-    }
-    game.currentPlayer = 1;
-    updateUI();
-    showMsg("⏭️ Пропуск хода, ход ИИ", false);
-    setTimeout(() => aiMakeMove(), 500);
-  }
+	function skipTurn() {
+	  if (!dictReady) { showMsg("Словарь не загружен", true); return; }
+	  if (game.gameOver) return;
+	  if (game.currentPlayer !== 0) { showMsg("Сейчас ход ИИ", true); return; }
+	  if (game.pendingPlaced.length > 0) {
+		showMsg("Сначала завершите или отмените выставленные фишки", true);
+		return;
+	  }
+
+	  let handSize = game.hand[0].length;
+	  if (handSize === 0) {
+		game.currentPlayer = 1;
+		updateUI();
+		showMsg("⏭️ Пропуск хода (нет фишек)", false);
+		setTimeout(() => aiMakeMove(), 500);
+		return;
+	  }
+
+	  let replaceCount = prompt(`У вас ${handSize} фишек. Сколько заменить? (1-${handSize})`, "1");
+	  replaceCount = parseInt(replaceCount, 10);
+	  if (isNaN(replaceCount) || replaceCount < 1 || replaceCount > handSize) {
+		showMsg("Неверное количество, пропуск без замены", true);
+		game.currentPlayer = 1;
+		updateUI();
+		setTimeout(() => aiMakeMove(), 500);
+		return;
+	  }
+
+	  let actualReplace = Math.min(replaceCount, game.bag.length);
+	  if (actualReplace < replaceCount) {
+		showMsg(`В мешке только ${game.bag.length} фишек, заменено ${actualReplace}`, true);
+		replaceCount = actualReplace;
+		if (replaceCount === 0) {
+		  game.currentPlayer = 1;
+		  updateUI();
+		  setTimeout(() => aiMakeMove(), 500);
+		  return;
+		}
+	  }
+
+	  let removed = game.hand[0].splice(0, replaceCount);
+	  game.bag.push(...removed);
+	  shuffle(game.bag);
+	  drawTiles(0, replaceCount);
+
+	  renderHand();
+	  showMsg(`🔄 Заменено ${replaceCount} фишек (ход пропущен)`, false);
+	  addEventLog(`Игрок заменил ${replaceCount} фишек и пропустил ход`, false);
+
+	  game.currentPlayer = 1;
+	  updateUI();
+	  setTimeout(() => aiMakeMove(), 500);
+	}
 
   // ---------- УМНЫЙ ИИ ----------
   function getLineCell(lineIdx, pos, isHorizontal) {
