@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Эрудит против ИИ – с эффектами</title>
+  <style>
+    :root {
+      --cell: 38px;
+      --tile: 32px;
+      --transition-time: 0.2s;
+    }
+    body {
+      font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif;
+      background: linear-gradient(145deg, #1e2a3a 0%, #0f1724 100%);
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    #app {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(2px);
+      padding: 20px;
+      border-radius: 32px;
+      box-shadow: 0 20px 35px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5);
+      text-align: center;
+      max-width: 850px;
+      width: 100%;
+      transition: all 0.3s ease;
+      animation: fadeSlideUp 0.5s ease-out;
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, #c0392b, #e67e22);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      letter-spacing: 1px;
+    }
+    #stats {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 12px;
+    }
+    #stats > div {
+      background: #2c3e50;
+      padding: 8px 16px;
+      border-radius: 40px;
+      color: #ecf0f1;
+      font-weight: bold;
+      font-size: 1.2rem;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.3), 0 2px 3px rgba(0,0,0,0.1);
+      transition: all 0.2s;
+      flex: 1;
+    }
+    #p1 { background: #27ae60; }
+    #p2 { background: #2980b9; }
+    .score-animate {
+      animation: pop 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); background: #f1c40f; color: #2c3e50; }
+      100% { transform: scale(1); }
+    }
+    #turn {
+      font-size: 1.1rem;
+      font-weight: bold;
+      background: #ecf0f1;
+      display: inline-block;
+      padding: 6px 18px;
+      border-radius: 50px;
+      margin-bottom: 15px;
+      transition: background 0.3s, transform 0.2s;
+    }
+    .turn-switch {
+      animation: switchGlow 0.5s ease;
+    }
+    @keyframes switchGlow {
+      0% { background: #f39c12; transform: scale(1); }
+      50% { background: #f1c40f; transform: scale(1.05); box-shadow: 0 0 10px gold; }
+      100% { background: #ecf0f1; transform: scale(1); }
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(15, var(--cell));
+      grid-template-rows: repeat(15, var(--cell));
+      gap: 1px;
+      background: #2c3e50;
+      padding: 4px;
+      border-radius: 12px;
+      margin: 0 auto 16px;
+      width: fit-content;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    }
+    .cell {
+      width: var(--cell);
+      height: var(--cell);
+      background: #fdfae8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: bold;
+      color: #555;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.1s ease;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    .cell:hover {
+      transform: scale(0.97);
+      filter: brightness(0.95);
+      background: #fff2cc;
+    }
+    .cell.DL { background: #a5d6a7; }
+    .cell.TL { background: #ffe082; }
+    .cell.DW { background: #90caf9; }
+    .cell.TW { background: #ef9a9a; }
+    .cell span {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      bottom: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      text-shadow: 0 0 1px white;
+    }
+    .tile {
+      width: calc(100% - 4px);
+      height: calc(100% - 4px);
+      background: #ffd966;
+      border: 1px solid #c49a2b;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      position: relative;
+      box-shadow: 2px 2px 3px rgba(0,0,0,0.2);
+      transition: transform 0.1s, box-shadow 0.1s;
+      animation: tileAppear 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+    @keyframes tileAppear {
+      0% { opacity: 0; transform: scale(0.6) rotate(-5deg); }
+      80% { transform: scale(1.05); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+    .tile:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 8px gold;
+      z-index: 10;
+    }
+    .tile.star { background: #b39ddb; border-color: #6a4e9b; }
+    .tile small {
+      position: absolute;
+      bottom: 2px;
+      right: 3px;
+      font-size: 9px;
+      font-weight: normal;
+      color: #4a2e00;
+    }
+    #hand {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 15px 0;
+      flex-wrap: wrap;
+      min-height: 50px;
+    }
+    #hand .tile {
+      width: 45px;
+      height: 45px;
+      font-size: 22px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    #hand .tile.sel {
+      background: #7ed321;
+      border-color: #3c8c0a;
+      transform: translateY(-5px);
+      box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+    }
+    #hand .tile:hover {
+      transform: translateY(-3px) scale(1.02);
+    }
+    #controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    button {
+      padding: 8px 22px;
+      border: none;
+      border-radius: 40px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      background: #4a90e2;
+      color: white;
+      transition: all 0.2s ease;
+      box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      filter: brightness(1.05);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    }
+    button:active:not(:disabled) {
+      transform: translateY(2px);
+    }
+    button:disabled {
+      background: #95a5a6;
+      transform: none;
+      cursor: not-allowed;
+    }
+    .pass { background: #f39c12; }
+    .check { background: #2ecc71; }
+    #msg {
+      height: 28px;
+      margin-top: 12px;
+      font-weight: bold;
+      font-size: 1rem;
+      color: #e74c3c;
+      transition: all 0.2s;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(30px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .shake {
+      animation: shakeAnim 0.4s ease-in-out 0s 2;
+    }
+    @keyframes shakeAnim {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    #dict-status {
+      font-size: 0.75rem;
+      background: #ecf0f1;
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <h1>🎲 Эрудит против ИИ ✨</h1>
+  <div id="dict-status">Словарь: загрузка...</div>
+  <div id="stats">
+    <div id="p1">🧑 Игрок: 0</div>
+    <div id="p2">🤖 AI: 0</div>
+  </div>
+  <div id="turn">🎯 Ход: Игрок</div>
+  <div id="board"></div>
+  <div id="hand"></div>
+  <div id="controls">
+    <button class="pass" id="swapBtn">🔄 Обменять (пропуск)</button>
+    <button class="check" id="endBtn">✅ Завершить ход</button>
+  </div>
+  <div id="msg"></div>
+</div>
+
+<script>
+  // ---------- КОНФИГУРАЦИЯ (та же, что работала) ----------
+  const TILE_CFG = { А:8, Б:2, В:4, Г:2, Д:4, Е:9, Ж:1, З:2, И:6, Й:1, К:4, Л:4, М:3, Н:5, О:10, П:4, Р:5, С:5, Т:5, У:4, Ф:1, Х:1, Ц:1, Ч:1, Ш:1, Щ:1, Ъ:1, Ы:2, Ь:2, Э:1, Ю:1, Я:2 };
+  const POINTS = { А:1, Б:3, В:2, Г:3, Д:2, Е:1, Ж:5, З:5, И:1, Й:4, К:3, Л:2, М:2, Н:1, О:1, П:2, Р:2, С:1, Т:1, У:3, Ф:10, Х:5, Ц:5, Ч:5, Ш:8, Щ:10, Ъ:10, Ы:4, Ь:3, Э:8, Ю:8, Я:6 };
+  const WIN_SCORE = 200;
+
+  function buildBonusGrid() {
+    let grid = Array(15).fill().map(() => Array(15).fill(null));
+    grid[7][7] = 'CENTER';
+    let tw = [[0,0],[0,7],[0,14],[7,0],[7,14],[14,0],[14,7],[14,14]];
+    tw.forEach(([r,c]) => grid[r][c] = 'TW');
+    let dw = [[1,1],[1,13],[2,2],[2,12],[3,3],[3,11],[4,4],[4,10],[10,4],[10,10],[11,3],[11,11],[12,2],[12,12],[13,1],[13,13],[0,3],[0,11],[2,6],[2,8],[3,0],[3,7],[3,14],[6,2],[6,6],[6,8],[6,12],[7,3],[7,11],[8,2],[8,6],[8,8],[8,12],[11,0],[11,7],[11,14],[12,6],[12,8],[14,3],[14,11]];
+    dw.forEach(([r,c]) => { if(grid[r][c]==null) grid[r][c] = 'DW'; });
+    let tl = [[1,5],[1,9],[5,1],[5,5],[5,9],[5,13],[9,1],[9,5],[9,9],[9,13],[13,5],[13,9]];
+    tl.forEach(([r,c]) => grid[r][c] = 'TL');
+    let dl = [[0,3],[0,11],[2,6],[2,8],[3,0],[3,7],[3,14],[6,2],[6,6],[6,8],[6,12],[7,3],[7,11],[8,2],[8,6],[8,8],[8,12],[11,0],[11,7],[11,14],[12,6],[12,8],[14,3],[14,11]];
+    dl.forEach(([r,c]) => { if(grid[r][c]==null) grid[r][c] = 'DL'; });
+    return grid;
+  }
+  const BONUS_GRID = buildBonusGrid();
+  const BONUS_TEXT = { TW:'x3\nСЛОВО', DW:'x2\nСЛО', TL:'x3\nБУКВ', DL:'x2\nБУКВ', CENTER:'★' };
+
+  let dictionary = new Set();
+  let dictReady = false;
+
+  async function loadDictionary() {
+    const statusDiv = document.getElementById('dict-status');
+    try {
+      const response = await fetch('/words.txt');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const text = await response.text();
+      const words = text.split(/\r?\n/).filter(w => w.trim().length > 0);
+      dictionary.clear();
+      for (let w of words) dictionary.add(w.trim().toUpperCase());
+      dictReady = true;
+      statusDiv.innerHTML = `✅ Словарь загружен: ${dictionary.size} слов`;
+      enableGameControls();
+      if (game && game.currentPlayer === 1) setTimeout(() => aiMakeMove(), 300);
+    } catch (e) {
+      statusDiv.innerHTML = `❌ Ошибка: ${e.message}. Запустите сервер и проверьте words.txt`;
+      dictReady = false;
+    }
+  }
+
+  function isValidWord(word) {
+    if (!word || word.length < 2) return false;
+    if (!/^[А-Я]+$/.test(word)) return false;
+    return dictionary.has(word);
+  }
+
+  let game = {
+    board: Array(15).fill().map(() => Array(15).fill(null)),
+    bag: [],
+    hand: [[], []],
+    currentPlayer: 0,
+    scores: [0,0],
+    gameOver: false,
+    firstMove: true,
+    selectedTile: null,
+    pendingPlaced: []
+  };
+  let aiThinking = false;
+
+  // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+  function initBag() {
+    let bag = [];
+    for (let letter in TILE_CFG) {
+      for (let i = 0; i < TILE_CFG[letter]; i++) bag.push({ letter, points: POINTS[letter], star: false, replaces: null });
+    }
+    for (let i = 0; i < 3; i++) bag.push({ letter: '*', points: 0, star: true, replaces: null });
+    shuffle(bag);
+    return bag;
+  }
+  function drawTiles(playerIdx, count) {
+    let drawn = 0;
+    while (drawn < count && game.bag.length > 0) game.hand[playerIdx].push(game.bag.pop()), drawn++;
+  }
+
+  function getAllWordsOnBoard() {
+    let words = [];
+    for (let r = 0; r < 15; r++) {
+      let word = '', cells = [];
+      for (let c = 0; c < 15; c++) {
+        let tile = game.board[r][c];
+        if (tile) {
+          let ch = tile.star ? tile.replaces : tile.letter;
+          word += ch;
+          cells.push([r,c]);
+        } else { if (word.length >= 2) words.push({ text: word, cells: cells.slice() }); word = ''; cells = []; }
+      }
+      if (word.length >= 2) words.push({ text: word, cells });
+    }
+    for (let c = 0; c < 15; c++) {
+      let word = '', cells = [];
+      for (let r = 0; r < 15; r++) {
+        let tile = game.board[r][c];
+        if (tile) {
+          let ch = tile.star ? tile.replaces : tile.letter;
+          word += ch;
+          cells.push([r,c]);
+        } else { if (word.length >= 2) words.push({ text: word, cells: cells.slice() }); word = ''; cells = []; }
+      }
+      if (word.length >= 2) words.push({ text: word, cells });
+    }
+    return words;
+  }
+  function isBoardValid() { return getAllWordsOnBoard().every(w => isValidWord(w.text)); }
+  function getNewWords(placedCells) {
+    let newWords = [];
+    let placedSet = new Set(placedCells.map(p => `${p.r},${p.c}`));
+    for (let r = 0; r < 15; r++) {
+      let word = '', cells = [];
+      for (let c = 0; c < 15; c++) {
+        let tile = game.board[r][c];
+        if (tile) {
+          let ch = tile.star ? tile.replaces : tile.letter;
+          word += ch;
+          cells.push([r,c]);
+        } else {
+          if (word.length >= 2 && cells.some(cell => placedSet.has(`${cell[0]},${cell[1]}`))) newWords.push({ text: word, cells: cells.slice() });
+          word = ''; cells = [];
+        }
+      }
+      if (word.length >= 2 && cells.some(cell => placedSet.has(`${cell[0]},${cell[1]}`))) newWords.push({ text: word, cells });
+    }
+    for (let c = 0; c < 15; c++) {
+      let word = '', cells = [];
+      for (let r = 0; r < 15; r++) {
+        let tile = game.board[r][c];
+        if (tile) {
+          let ch = tile.star ? tile.replaces : tile.letter;
+          word += ch;
+          cells.push([r,c]);
+        } else {
+          if (word.length >= 2 && cells.some(cell => placedSet.has(`${cell[0]},${cell[1]}`))) newWords.push({ text: word, cells: cells.slice() });
+          word = ''; cells = [];
+        }
+      }
+      if (word.length >= 2 && cells.some(cell => placedSet.has(`${cell[0]},${cell[1]}`))) newWords.push({ text: word, cells });
+    }
+    return newWords;
+  }
+  function calculateScoreForWords(newWords, placedSet) {
+    let total = 0;
+    for (let w of newWords) {
+      let wordScore = 0, wordMult = 1;
+      for (let [r,c] of w.cells) {
+        let tile = game.board[r][c];
+        let points = tile.points;
+        let bonus = BONUS_GRID[r][c];
+        if (placedSet.has(`${r},${c}`)) {
+          if (bonus === 'DL') points *= 2;
+          else if (bonus === 'TL') points *= 3;
+          else if (bonus === 'DW') wordMult *= 2;
+          else if (bonus === 'TW') wordMult *= 3;
+        }
+        wordScore += points;
+      }
+      total += wordScore * wordMult;
+    }
+    return total;
+  }
+  function isConnectedToBoard(placedCells) {
+    if (game.firstMove) return placedCells.some(({r,c}) => r===7 && c===7);
+    let boardOccupied = new Set();
+    for (let r=0;r<15;r++) for(let c=0;c<15;c++) if(game.board[r][c] && !placedCells.some(p=>p.r===r && p.c===c)) boardOccupied.add(`${r},${c}`);
+    if (boardOccupied.size === 0) return false;
+    let placedSet = new Set(placedCells.map(p=>`${p.r},${p.c}`));
+    let frontier = [], visited = new Set();
+    let start = `${placedCells[0].r},${placedCells[0].c}`;
+    frontier.push(start); visited.add(start);
+    let touchesOld = false;
+    while(frontier.length) {
+      let key = frontier.shift();
+      let [rr,cc] = key.split(',').map(Number);
+      let neigh = [[rr-1,cc],[rr+1,cc],[rr,cc-1],[rr,cc+1]];
+      for(let [nr,nc] of neigh) {
+        if(nr>=0 && nr<15 && nc>=0 && nc<15) {
+          let nkey = `${nr},${nc}`;
+          if(placedSet.has(nkey) && !visited.has(nkey)) { visited.add(nkey); frontier.push(nkey); }
+          if(boardOccupied.has(nkey)) touchesOld = true;
+        }
+      }
+    }
+    return visited.size === placedCells.length && touchesOld;
+  }
+
+  // ---------- ХОД ЧЕЛОВЕКА (с эффектами) ----------
+  function placeOnBoard(r,c) {
+    if (!dictReady) { showMsg("Словарь ещё не загружен", true); return; }
+    if (game.gameOver) return;
+    if (game.currentPlayer !== 0) { showMsg("Сейчас ход ИИ", true); return; }
+    if (game.selectedTile === null) { showMsg("Выберите фишку в руке", true); return; }
+    if (game.board[r][c] !== null) { showMsg("Клетка занята", true); return; }
+
+    let { playerIdx, handIndex } = game.selectedTile;
+    let tile = game.hand[playerIdx][handIndex];
+    if (tile.star && !tile.replaces) {
+      let letter = prompt("Звёздочка заменяет букву (А-Я)", "А")?.toUpperCase();
+      if (!letter || !POINTS[letter]) { showMsg("Некорректная буква", true); return; }
+      tile.replaces = letter;
+      tile.points = POINTS[letter];
+    }
+    let boardTile = { ...tile };
+    if(boardTile.star) boardTile.replaces = tile.replaces;
+    game.board[r][c] = boardTile;
+    game.hand[playerIdx].splice(handIndex, 1);
+    game.selectedTile = null;
+    game.pendingPlaced.push({ r, c, handIndex, playerIdx, originalTile: tile });
+    renderBoard();
+    renderHand();
+    showMsg(`📌 Буква ${boardTile.letter} поставлена`, false);
+  }
+
+  function cancelMove() {
+    for (let p of game.pendingPlaced) {
+      game.board[p.r][p.c] = null;
+      game.hand[p.playerIdx].splice(p.handIndex, 0, p.originalTile);
+    }
+    game.pendingPlaced = [];
+    game.selectedTile = null;
+    renderBoard();
+    renderHand();
+    showMsg("❌ Ход отменён", true);
+  }
+
+  function showMsg(text, isError = false) {
+    const msgDiv = document.getElementById('msg');
+    msgDiv.textContent = text;
+    if (isError) {
+      msgDiv.style.color = '#e74c3c';
+      document.getElementById('board').classList.add('shake');
+      setTimeout(() => document.getElementById('board').classList.remove('shake'), 500);
+    } else {
+      msgDiv.style.color = '#2c3e50';
+    }
+    setTimeout(() => { if(msgDiv.textContent === text) msgDiv.textContent = ''; }, 2000);
+  }
+
+  async function endTurn() {
+    if (!dictReady) { showMsg("Словарь не загружен", true); return; }
+    if (game.gameOver) return;
+    if (game.currentPlayer !== 0) return;
+    if (game.pendingPlaced.length === 0) { showMsg("Вы не выложили ни одной фишки", true); return; }
+    if (!isConnectedToBoard(game.pendingPlaced)) { cancelMove(); showMsg("Новые буквы должны примыкать к уже стоящим", true); return; }
+    let newWords = getNewWords(game.pendingPlaced);
+    if (newWords.length === 0) { cancelMove(); showMsg("Не образовано ни одного слова", true); return; }
+    for (let w of newWords) if (!isValidWord(w.text)) { cancelMove(); showMsg(`Слово "${w.text}" не найдено в словаре`, true); return; }
+    if (!isBoardValid()) { cancelMove(); showMsg("Недопустимое слово на поле", true); return; }
+
+    let placedSet = new Set(game.pendingPlaced.map(p => `${p.r},${p.c}`));
+    let moveScore = calculateScoreForWords(newWords, placedSet);
+    if (game.pendingPlaced.length === 7) moveScore += 15;
+    game.scores[0] += moveScore;
+    animateScore('p1');
+    showMsg(`✨ +${moveScore} очков!`, false);
+    drawTiles(0, 7 - game.hand[0].length);
+    game.pendingPlaced = [];
+    game.firstMove = false;
+    if (game.scores[0] >= WIN_SCORE) { game.gameOver = true; showMsg("🏆 Игрок победил!", false); updateUI(); renderBoard(); renderHand(); return; }
+    game.currentPlayer = 1;
+    updateUI();
+    renderBoard();
+    renderHand();
+    setTimeout(() => aiMakeMove(), 600);
+  }
+
+  function swapTiles() {
+    if (!dictReady) { showMsg("Словарь не загружен", true); return; }
+    if (game.gameOver) return;
+    if (game.currentPlayer !== 0) { showMsg("Сейчас ход ИИ", true); return; }
+    let cnt = prompt("Сколько фишек обменять? (0 – пропустить ход)", "1");
+    if (cnt === null) return;
+    let n = parseInt(cnt);
+    if (isNaN(n) || n < 0) return;
+    if (n > game.hand[0].length) { showMsg("Нельзя обменять больше, чем есть в руке", true); return; }
+    if (n === 0) { game.currentPlayer = 1; updateUI(); showMsg("Пропуск хода", false); setTimeout(() => aiMakeMove(), 500); return; }
+    if (game.bag.length < n) { showMsg("В мешке недостаточно фишек", true); return; }
+    for (let i=0;i<n;i++) { let tile = game.hand[0].pop(); game.bag.push(tile); }
+    shuffle(game.bag);
+    drawTiles(0, n);
+    game.currentPlayer = 1;
+    updateUI();
+    renderHand();
+    showMsg(`🃏 Обменяно ${n} фишек, ход ИИ`, false);
+    setTimeout(() => aiMakeMove(), 500);
+  }
+
+  // ---------- УМНЫЙ ИИ ----------
+  function generateAllPossibleMoves() {
+    let moves = [];
+    let hand = game.hand[1];
+    if (hand.length === 0) return moves;
+    let possibleCells = [];
+    if (game.firstMove) possibleCells.push([7,7]);
+    else for (let i=0;i<15;i++) for(let j=0;j<15;j++) if (!game.board[i][j]) {
+      let adj = false;
+      for (let [di,dj] of [[-1,0],[1,0],[0,-1],[0,1]]) { let ni=i+di, nj=j+dj; if (ni>=0 && ni<15 && nj>=0 && nj<15 && game.board[ni][nj]) { adj=true; break; } }
+      if (adj) possibleCells.push([i,j]);
+    }
+    for (let [startR, startC] of possibleCells) {
+      // горизонталь
+      let left = startC; while (left-1>=0 && game.board[startR][left-1]!==null) left--;
+      let right = startC; while (right+1<15 && game.board[startR][right+1]!==null) right++;
+      let pattern = [];
+      for (let c=left; c<=right; c++) { let tile = game.board[startR][c]; pattern.push(tile ? (tile.star ? tile.replaces : tile.letter) : null); }
+      let nullIndices = pattern.reduce((arr,v,idx)=> v===null ? [...arr,idx] : arr, []);
+      if (nullIndices.length>0 && nullIndices.length<=hand.length) {
+        let combos = [];
+        function dfs(pos, usedIndices, current) {
+          if (pos === nullIndices.length) { combos.push([...current]); return; }
+          let idx = nullIndices[pos];
+          for (let h=0; h<hand.length; h++) {
+            if (usedIndices.has(h)) continue;
+            let tile = hand[h];
+            let letters = tile.star ? Object.keys(POINTS) : [tile.letter];
+            for (let letter of letters) {
+              current.push({ handIdx: h, letter, pos: idx, originalTile: tile });
+              dfs(pos+1, new Set([...usedIndices, h]), current);
+              current.pop();
+            }
+          }
+        }
+        dfs(0, new Set(), []);
+        for (let combo of combos) {
+          let tempPlaced = [];
+          for (let p of combo) {
+            let fakeTile = { ...p.originalTile, letter: p.letter, points: POINTS[p.letter], star: p.originalTile.star, replaces: p.originalTile.star ? p.letter : null };
+            game.board[startR][left+p.pos] = fakeTile;
+            tempPlaced.push({ r:startR, c:left+p.pos, handIdx:p.handIdx, originalTile:p.originalTile, letterActual:p.letter });
+          }
+          let connected = isConnectedToBoard(tempPlaced.map(p=>({r:p.r,c:p.c})));
+          if (connected) {
+            let newWords = getNewWords(tempPlaced.map(p=>({r:p.r,c:p.c})));
+            let allValid = newWords.length>0 && newWords.every(w=>isValidWord(w.text));
+            if (allValid) {
+              let placedSet = new Set(tempPlaced.map(p=>`${p.r},${p.c}`));
+              let score = calculateScoreForWords(newWords, placedSet);
+              if (tempPlaced.length===7) score+=15;
+              moves.push({ placements: tempPlaced, score, newWords });
+            }
+          }
+          for (let p of tempPlaced) game.board[p.r][p.c] = null;
+        }
+      }
+      // вертикаль
+      let up = startR; while (up-1>=0 && game.board[up-1][startC]!==null) up--;
+      let down = startR; while (down+1<15 && game.board[down+1][startC]!==null) down++;
+      let vPattern = [];
+      for (let r=up; r<=down; r++) { let tile = game.board[r][startC]; vPattern.push(tile ? (tile.star ? tile.replaces : tile.letter) : null); }
+      let vNullIndices = vPattern.reduce((arr,v,idx)=> v===null ? [...arr,idx] : arr, []);
+      if (vNullIndices.length>0 && vNullIndices.length<=hand.length) {
+        let combos = [];
+        function dfsV(pos, usedIndices, current) {
+          if (pos === vNullIndices.length) { combos.push([...current]); return; }
+          let idx = vNullIndices[pos];
+          for (let h=0; h<hand.length; h++) {
+            if (usedIndices.has(h)) continue;
+            let tile = hand[h];
+            let letters = tile.star ? Object.keys(POINTS) : [tile.letter];
+            for (let letter of letters) {
+              current.push({ handIdx: h, letter, pos: idx, originalTile: tile });
+              dfsV(pos+1, new Set([...usedIndices, h]), current);
+              current.pop();
+            }
+          }
+        }
+        dfsV(0, new Set(), []);
+        for (let combo of combos) {
+          let tempPlaced = [];
+          for (let p of combo) {
+            let fakeTile = { ...p.originalTile, letter: p.letter, points: POINTS[p.letter], star: p.originalTile.star, replaces: p.originalTile.star ? p.letter : null };
+            game.board[up+p.pos][startC] = fakeTile;
+            tempPlaced.push({ r:up+p.pos, c:startC, handIdx:p.handIdx, originalTile:p.originalTile, letterActual:p.letter });
+          }
+          let connected = isConnectedToBoard(tempPlaced.map(p=>({r:p.r,c:p.c})));
+          if (connected) {
+            let newWords = getNewWords(tempPlaced.map(p=>({r:p.r,c:p.c})));
+            let allValid = newWords.length>0 && newWords.every(w=>isValidWord(w.text));
+            if (allValid) {
+              let placedSet = new Set(tempPlaced.map(p=>`${p.r},${p.c}`));
+              let score = calculateScoreForWords(newWords, placedSet);
+              if (tempPlaced.length===7) score+=15;
+              moves.push({ placements: tempPlaced, score, newWords });
+            }
+          }
+          for (let p of tempPlaced) game.board[p.r][p.c] = null;
+        }
+      }
+    }
+    let unique = new Map();
+    for (let m of moves) { let key = m.placements.map(p=>`${p.r},${p.c}`).sort().join(';'); if (!unique.has(key) || unique.get(key).score < m.score) unique.set(key,m); }
+    return Array.from(unique.values());
+  }
+
+  async function aiMakeMove() {
+    if (!dictReady || game.gameOver || game.currentPlayer!==1 || aiThinking) return;
+    aiThinking = true;
+    showMsg("🤖 AI думает...", false);
+    await new Promise(r=>setTimeout(r,300));
+    let moves = generateAllPossibleMoves();
+    if (moves.length === 0) {
+      showMsg("AI не нашёл ходов, пропускает", false);
+      if (game.bag.length>=2 && game.hand[1].length>0) {
+        let n = Math.min(2, game.hand[1].length);
+        for(let i=0;i<n;i++) game.bag.push(game.hand[1].pop());
+        shuffle(game.bag);
+        drawTiles(1, n);
+        renderHand();
+      }
+      game.currentPlayer = 0;
+      updateUI();
+      renderBoard();
+      renderHand();
+      aiThinking = false;
+      return;
+    }
+    moves.sort((a,b)=>b.score-a.score);
+    let best = null;
+    for (let candidate of moves) {
+        let allValid = candidate.newWords.length > 0 && candidate.newWords.every(w => isValidWord(w.text));
+        if (allValid) {
+            best = candidate;
+            console.log("✅ AI выбрал валидный ход:", candidate.newWords.map(w=>w.text));
+            break;
+        } else {
+            console.log("❌ AI отклонил невалидный ход:", candidate.newWords.map(w=>w.text), "очки", candidate.score);
+        }
+    }
+    if (!best) {
+        showMsg("AI не нашёл корректного хода, пропускает", false);
+        if (game.bag.length>=2 && game.hand[1].length>0) {
+            let n = Math.min(2, game.hand[1].length);
+            for(let i=0;i<n;i++) game.bag.push(game.hand[1].pop());
+            shuffle(game.bag);
+            drawTiles(1, n);
+            renderHand();
+        }
+        game.currentPlayer = 0;
+        updateUI();
+        renderBoard();
+        renderHand();
+        aiThinking = false;
+        return;
+    }
+    showMsg(`🧠 AI набрал ${best.score} очков!`, false);
+    for (let p of best.placements) {
+      let tile = game.hand[1][p.handIdx];
+      if (tile.star && !tile.replaces) { tile.replaces = p.letterActual; tile.points = POINTS[p.letterActual]; }
+      let boardTile = { ...tile };
+      if(boardTile.star) boardTile.replaces = tile.replaces;
+      game.board[p.r][p.c] = boardTile;
+      game.hand[1].splice(p.handIdx,1);
+      game.pendingPlaced.push({ r:p.r, c:p.c, handIndex:p.handIdx, playerIdx:1, originalTile:tile });
+    }
+    renderBoard();
+    renderHand();
+    let placedSet = new Set(game.pendingPlaced.map(p=>`${p.r},${p.c}`));
+    let moveScore = calculateScoreForWords(best.newWords, placedSet);
+    if (game.pendingPlaced.length===7) moveScore+=15;
+    game.scores[1] += moveScore;
+    animateScore('p2');
+    drawTiles(1, 7 - game.hand[1].length);
+    game.pendingPlaced = [];
+    game.firstMove = false;
+    if (game.scores[1] >= WIN_SCORE) { game.gameOver = true; showMsg("🤖 AI победил!", false); updateUI(); renderBoard(); renderHand(); aiThinking=false; return; }
+    game.currentPlayer = 0;
+    updateUI();
+    renderBoard();
+    renderHand();
+    aiThinking = false;
+    showMsg("🎲 Ваш ход", false);
+  }
+
+  function animateScore(playerId) {
+    const el = document.getElementById(playerId);
+    el.classList.add('score-animate');
+    setTimeout(() => el.classList.remove('score-animate'), 400);
+  }
+
+  // ---------- RENDER c эффектами ----------
+  function renderBoard() {
+    const container = document.getElementById('board');
+    container.innerHTML = '';
+    for (let r = 0; r < 15; r++) {
+      for (let c = 0; c < 15; c++) {
+        const cellDiv = document.createElement('div');
+        cellDiv.className = 'cell';
+        const bonus = BONUS_GRID[r][c];
+        if (bonus && !game.board[r][c]) {
+          cellDiv.classList.add(bonus);
+          cellDiv.innerHTML = `<span>${BONUS_TEXT[bonus]}</span>`;
+        }
+        const tile = game.board[r][c];
+        if (tile) {
+          const tileDiv = document.createElement('div');
+          tileDiv.className = 'tile' + (tile.star ? ' star' : '');
+          let displayLetter = tile.star ? (tile.replaces || '*') : tile.letter;
+          tileDiv.innerHTML = `${displayLetter}<small>${tile.points}</small>`;
+          cellDiv.appendChild(tileDiv);
+        }
+        cellDiv.onclick = (function(row, col) { return function() { placeOnBoard(row, col); }; })(r, c);
+        container.appendChild(cellDiv);
+      }
+    }
+  }
+
+  function renderHand() {
+    const handDiv = document.getElementById('hand');
+    handDiv.innerHTML = '';
+    const hand = game.hand[game.currentPlayer];
+    for (let i = 0; i < hand.length; i++) {
+      let t = hand[i];
+      const tileDiv = document.createElement('div');
+      tileDiv.className = 'tile' + (t.star ? ' star' : '');
+      if (game.selectedTile && game.selectedTile.playerIdx === game.currentPlayer && game.selectedTile.handIndex === i) tileDiv.classList.add('sel');
+      let display = t.star ? (t.replaces || '*') : t.letter;
+      tileDiv.innerHTML = `${display}<small>${t.points}</small>`;
+      tileDiv.onclick = (function(idx) { return function() { selectTile(idx); }; })(i);
+      handDiv.appendChild(tileDiv);
+    }
+  }
+
+  function selectTile(idx) {
+    if (!dictReady) { showMsg("Словарь ещё не загружен", true); return; }
+    if (game.gameOver) return;
+    if (game.currentPlayer !== 0) { showMsg("Сейчас ход ИИ", true); return; }
+    if (game.selectedTile && game.selectedTile.playerIdx === 0 && game.selectedTile.handIndex === idx) game.selectedTile = null;
+    else game.selectedTile = { playerIdx: 0, handIndex: idx };
+    renderHand();
+  }
+
+  function updateUI() {
+    document.getElementById('p1').innerHTML = `🧑 Игрок: ${game.scores[0]}`;
+    document.getElementById('p2').innerHTML = `🤖 AI: ${game.scores[1]}`;
+    const turnDiv = document.getElementById('turn');
+    turnDiv.innerHTML = game.currentPlayer === 0 ? '🎯 Ход: Игрок' : '🤖 Ход: AI';
+    turnDiv.classList.add('turn-switch');
+    setTimeout(() => turnDiv.classList.remove('turn-switch'), 500);
+    const swapBtn = document.getElementById('swapBtn'), endBtn = document.getElementById('endBtn');
+    if (game.gameOver || !dictReady || game.currentPlayer !== 0) { swapBtn.disabled = true; endBtn.disabled = true; }
+    else { swapBtn.disabled = false; endBtn.disabled = false; }
+  }
+
+  function enableGameControls() {
+    if (!game.gameOver && dictReady && game.currentPlayer === 0) {
+      document.getElementById('swapBtn').disabled = false;
+      document.getElementById('endBtn').disabled = false;
+    }
+  }
+
+  async function initGame() {
+    await loadDictionary();
+    if (!dictReady) return;
+    game.bag = initBag();
+    game.board = Array(15).fill().map(() => Array(15).fill(null));
+    game.hand = [[], []];
+    game.scores = [0,0];
+    game.currentPlayer = 0;
+    game.gameOver = false;
+    game.firstMove = true;
+    game.pendingPlaced = [];
+    game.selectedTile = null;
+    drawTiles(0, 7);
+    drawTiles(1, 7);
+    renderBoard();
+    renderHand();
+    updateUI();
+    if (game.currentPlayer === 1) setTimeout(() => aiMakeMove(), 300);
+  }
+
+  document.getElementById('swapBtn').onclick = () => swapTiles();
+  document.getElementById('endBtn').onclick = () => endTurn();
+  initGame();
+</script>
+</body>
+</html>
