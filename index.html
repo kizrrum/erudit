@@ -1285,7 +1285,7 @@ function getBestMoveFromWorker(board, hand, firstMove) {
 async function loadDictionary() {
   const statusDiv = document.getElementById('dict-status');
   try {
-    const response = await fetch('/words.txt');
+    const response = await fetch('words.txt');
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const text = await response.text();
     const words = text.split(/\r?\n/).filter(w => w.trim().length > 0);
