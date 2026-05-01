@@ -304,6 +304,19 @@
       justify-content: center;
       margin-top: 10px;
     }
+
+    /* Кнопки на телефоне в два ряда */
+    @media (max-width: 768px) {
+      #controls {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+      #controls button {
+        padding: 10px 0;
+        font-size: 0.9rem;
+      }
+    }
     button {
       padding: 8px 22px;
       border: none;

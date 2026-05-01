@@ -420,10 +420,11 @@
   <div id="hand"></div>
   <div id="controls">
     <button class="pass" id="swapBtn">⏭️ Пропуск</button>
-    <button class="check" id="endBtn">✅ Завершить ход</button>
+    <button class="check" id="endBtn">✅ Готово</button>
     <button class="hint-btn" id="hintBtn" title="Подсказка">💡</button>
     <button class="music-toggle" id="musicBtn" title="Музыка"></button>
     <button class="music-mode" id="musicModeBtn" title="Режим музыки"></button>
+    <button id="newGameBtn" title="Перезапуск игры">🔄</button>
   </div>
   <div id="msg"></div>
   <div id="hint-popup" aria-live="polite"></div>
@@ -1285,7 +1286,7 @@ function getBestMoveFromWorker(board, hand, firstMove) {
 async function loadDictionary() {
   const statusDiv = document.getElementById('dict-status');
   try {
-    const response = await fetch('/words.txt');
+    const response = await fetch('words.txt');
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const text = await response.text();
     const words = text.split(/\r?\n/).filter(w => w.trim().length > 0);
@@ -1818,13 +1819,14 @@ async function aiMakeMove() {
   disableGameControls();
   const msgDiv = document.getElementById('msg');
   msgDiv.textContent = "🤖 AI анализирует (воркер)...";
-  
+  const currentGameId = game.gameId;
   try {
     // Подготовка данных для воркера
     const boardForWorker = game.board.map(row => row.map(cell => cell ? { ...cell } : null));
     const handForWorker = game.hand[1].map(t => ({ ...t, replaces: t.replaces ? t.replaces : null }));
     
     const bestMove = await getBestMoveFromWorker(boardForWorker, handForWorker, game.firstMove);
+    if (game.gameId !== currentGameId) return;
     
     if (!bestMove || !bestMove.placements || bestMove.placements.length === 0) {
       // Нет доступных ходов – пропускаем
@@ -2021,6 +2023,30 @@ async function aiMakeMove() {
     if (hintBtn) hintBtn.disabled = false;
   }
 
+function newGame() {
+  if (isThinking) return;
+  if (game.pendingPlaced.length > 0) cancelMove();
+  
+  game.board = Array(15).fill().map(() => Array(15).fill(null));
+  game.bag = initBag();
+  game.hand = [[], []];
+  game.scores = [0, 0];
+  game.currentPlayer = 0;
+  game.gameOver = false;
+  game.firstMove = true;
+  game.selectedTile = null;
+  game.pendingPlaced = [];
+  game.gameId = Date.now();
+
+  drawTiles(0, 7);
+  drawTiles(1, 7);
+
+  renderBoard();
+  renderHand();
+  updateUI();
+  addEventLog("🔄 Новая игра начата", false);
+}
+
   async function initGame() {
     await loadDictionary();
     await initSound();
@@ -2052,6 +2078,7 @@ async function aiMakeMove() {
   document.getElementById('musicBtn').onclick = () => toggleMusic();
   document.getElementById('musicModeBtn').onclick = () => cycleMusicMode();
   document.addEventListener('pointerdown', ensureAudioStarted, { once: true });
+  document.getElementById('newGameBtn').onclick = () => newGame();
   initGame();
 </script>
 <!-- Кнопка помощи (добавляется в контейнер .controls) -->
@@ -2142,7 +2169,7 @@ async function aiMakeMove() {
       <li>Кликните на букву в руке (она подсветится).</li>
       <li>Кликните на свободную клетку на доске – буква встанет.</li>
       <li>Выкладывайте все буквы <strong>одного слова</strong> (можно несколько за ход).</li>
-      <li>Когда собрали слово – нажмите <strong>«Завершить ход»</strong>.</li>
+      <li>Когда собрали слово – нажмите <strong>«Готово»</strong>.</li>
     </ul>
     
     <h3>Важные правила</h3>
