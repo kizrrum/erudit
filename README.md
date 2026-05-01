@@ -53,7 +53,12 @@
 
 Так как игра загружает словарь через `fetch`, для локальной работы требуется простой веб-сервер (недостаточно просто открыть `index.html` в браузере).
 
-### 1. Клонируйте репозиторий
-```bash
-git clone https://github.com/kizrrum/erudit.git
-cd erudit
+### Требования
+- Установленный [Node.js](https://nodejs.org/) (версия 14 или выше)
+
+### Шаги
+
+1. **Клонируйте репозиторий** (или распакуйте архив):
+   ```bash
+   git clone https://github.com/kizrrum/erudit.git
+   cd erudit
