@@ -1,1 +1,13 @@
-(index.html is a source file, and there are no build artifacts, dependencies, or temp files in the changes)
+!music/
+/*
+!README.md
+!Tone.js
+!index.html
+!main.js
+!server.js
+!logo.png
+!package.json
+!words.txt
+!preload.js
+!midi.js
+!soundfont-player.min.js
