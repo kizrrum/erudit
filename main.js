@@ -2,10 +2,9 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-const { Menu } = require('electron');  // добавь эту строку в начало main.js
+const { Menu } = require('electron');
 
 function createWindow() {
-  // Отключаем стандартное меню (Файл, Вид и т.д.) – останется только крестик
   Menu.setApplicationMenu(null);
 
   const win = new BrowserWindow({
@@ -20,15 +19,21 @@ function createWindow() {
   });
 
   win.loadFile('index.html');
-
-  // == УДАЛИ (или закомментируй) строку ниже перед финальной сборкой ==
-  // win.webContents.openDevTools();
 }
+
 // Обработчик для чтения словаря из главного процесса
 ipcMain.handle('read-dictionary', async () => {
   const dictPath = path.join(__dirname, 'words.txt');
   const data = fs.readFileSync(dictPath, 'utf-8');
   return data;
+});
+
+// Обработчик для получения списка MIDI-файлов
+ipcMain.handle('get-midi-list', async () => {
+  const musicDir = path.join(__dirname, 'music');
+  if (!fs.existsSync(musicDir)) return [];
+  const files = fs.readdirSync(musicDir);
+  return files.filter(f => f.toLowerCase().endsWith('.mid'));
 });
 
 app.whenReady().then(createWindow);

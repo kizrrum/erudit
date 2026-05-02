@@ -446,6 +446,8 @@
   </style>
   <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>-->
   <script src="Tone.js"></script>
+  <script src="https://unpkg.com/@tonejs/midi"></script>
+  <script src="https://unpkg.com/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
 </head>
 <body>
 <body>
@@ -533,7 +535,7 @@ window.onerror = function(msg, url, line, col, error) {
   <button class="check" id="endBtn">✅ Готово</button>
   <button class="hint-btn" id="hintBtn" title="Подсказка">💡</button>
   <button class="music-toggle" id="musicBtn" title="Музыка"></button>
-  <button class="music-mode" id="musicModeBtn" title="Режим музыки"></button>
+  <button class="music-mode" id="midiBtn" title="Случайный MIDI трек">🎲 Случайный трек</button>
   <button id="newGameBtn" title="Перезапуск игры">🔄</button>
 </div>
 
@@ -736,8 +738,12 @@ autoResizeBoard();
   let ambientLFO;
   let ambientPan;
   let hintTimer = null;
-  let musicEnabled = false;
-  let musicMode = 'ambient';
+  
+  // ========== НОВАЯ MIDI-МУЗЫКА ==========
+  let midiInstrument = null;      // Soundfont инструмент (фортепиано)
+  let midiList = [];              // список MIDI-файлов
+  let currentMidiEvents = [];     // массив ID запланированных событий для отмены
+  let midiMusicEnabled = false;   // включена ли MIDI-музыка
 
 
 // ==================== WEB WORKER ДЛЯ ИИ ====================
@@ -1244,221 +1250,118 @@ async function initSound() {
     }
   }
 
-  function stopBackgroundMusic() {
-    if (typeof Tone === 'undefined') return;
+  // ========== НОВАЯ MIDI-МУЗЫКА: ФУНКЦИИ ==========
+  
+  // Инициализация Soundfont (один раз при старте)
+  async function initMidiPlayer() {
+    if (midiInstrument) return;
+    try {
+      await Tone.start();
+      midiInstrument = await Soundfont.instrument(Tone.context.rawContext, 'acoustic_grand_piano');
+      console.log("✅ Soundfont пианино готово");
+      await loadMidiList();
+    } catch (e) {
+      console.warn("Ошибка инициализации MIDI плеера", e);
+    }
+  }
+
+  // Загружаем список доступных MIDI-файлов
+  async function loadMidiList() {
+    try {
+      let files = [];
+      if (window.electronAPI && window.electronAPI.getMidiList) {
+        // Electron: используем IPC
+        files = await window.electronAPI.getMidiList();
+      } else {
+        // Веб: пробуем fetch
+        const response = await fetch('/midi-list');
+        files = await response.json();
+      }
+      midiList = files;
+      addEventLog(`📁 Загружено MIDI-файлов: ${midiList.length}`, false);
+    } catch (e) {
+      console.warn("Не удалось загрузить список MIDI", e);
+      midiList = [];
+      addEventLog("⚠️ MIDI-список не загружен", true);
+    }
+  }
+
+  // Остановить текущую MIDI-музыку (все запланированные ноты)
+  function stopMidiMusic() {
+    if (!Tone.Transport) return;
     Tone.Transport.cancel(0);
-    if (Tone.Transport.state === 'started') Tone.Transport.stop();
-    if (piano) piano.releaseAll();
-    if (synth) synth.releaseAll();
+    currentMidiEvents = [];
   }
 
-  function startBackgroundMusic() {
-  if ((!piano && !synth) || !soundReady || typeof Tone === 'undefined') return;
-
-  stopBackgroundMusic();
-
-  Tone.Transport.bpm.value = (musicMode === 'classical') ? 108 : 52;
-  const musicVoice = synth;
-  if (!musicVoice) return;
-
-    // ================= КЛАССИКА =================
-    if (musicMode === 'classical') {
-  const classicalThemes = [
-    {
-      title: "Für Elise (Бетховен) - точная тема",
-      bpm: 100,
-      // Полная главная тема (A) + эпизод (B) в оригинальной тональности Am
-      melody: [
-        "E5", "D#5", "E5", "D#5", "E5", "B4", "D5", "C5", "A4",
-        "C4", "E4", "A4", "B4",
-        "E5", "D#5", "E5", "D#5", "E5", "B4", "D5", "C5", "A4",
-        "C4", "E4", "A4", "B4",
-        "C5", "E4", "E4", "C5", "B4", "A4", "A4", "G#4", "B4", "E4",
-        "C5", "E4", "E4", "C5", "B4", "A4", "A4", "G#4", "B4", "E4",
-        "C5", "B4", "A4", "G#4", "A4", "C5", "E5", "D#5", "E5", "B4",
-        "C5", "B4", "A4", "G#4", "A4", "C5", "E5", "D#5", "E5", "C5", "B4", "A4"
-      ],
-      bass: [
-        "A2", "E3", "A2", "E3", "A2", "E3", "A2", "E3",
-        "A2", "E3", "A2", "E3", "A2", "E3", "A2", "E3",
-        "A2", "E3", "A2", "E3", "A2", "E3", "A2", "E3",
-        "A2", "E3", "A2", "E3", "A2", "E3", "A2", "E3",
-        "F2", "C3", "F2", "C3", "F2", "C3", "F2", "C3",
-        "G2", "D3", "G2", "D3", "G2", "D3", "G2", "D3",
-        "E2", "B2", "E2", "B2", "E2", "B2", "E2", "B2",
-        "A2", "E3", "A2", "E3", "A2", "E3", "A2", "E3"
-      ]
-    },
-    {
-      title: "Ode to Joy (Бетховен) - точная хоровая тема",
-      bpm: 108,
-      // 16 тактов в C-dur, точная мелодия из симфонии №9
-      melody: [
-        "E4","E4","F4","G4","G4","F4","E4","D4","C4","C4","D4","E4","E4","D4","D4",
-        "E4","E4","F4","G4","G4","F4","E4","D4","C4","C4","D4","E4","D4","C4","C4",
-        "D4","D4","E4","C4","D4","E4","F4","E4","C4","D4","E4","F4","E4","D4","C4","D4","G3",
-        "E4","E4","F4","G4","G4","F4","E4","D4","C4","C4","D4","E4","D4","C4","C4",
-        "D4","D4","E4","C4","D4","E4","F4","E4","C4","D4","E4","F4","E4","D4","C4","D4","G3",
-        "E4","E4","F4","G4","G4","F4","E4","D4","C4","C4","D4","E4","D4","C4","C4"
-      ],
-      bass: [
-        "C3","G2","C3","G2","C3","G2","C3","G2","C3","G2","C3","G2","C3","G2","C3","G2",
-        "F3","C3","F3","C3","F3","C3","F3","C3","F3","C3","F3","C3","F3","C3","F3","C3",
-        "G2","D3","G2","D3","G2","D3","G2","D3","G2","D3","G2","D3","G2","D3","G2","D3",
-        "C3","G2","C3","G2","C3","G2","C3","G2","C3","G2","C3","G2","C3","G2","C3","G2"
-      ]
-    },
-    {
-      title: "Eine kleine Nachtmusik (Моцарт) - точная тема",
-      bpm: 132,
-      // Экспозиция главной партии (G-dur), более детальная
-      melody: [
-        "G4","D5","E5","F#5","G5","G5","G5","D5","E5","F#5","G5","G5","G5",
-        "A5","B5","C6","D6","C6","B5","A5","G5","F#5","E5","D5",
-        "G4","D5","E5","F#5","G5","G5","G5","D5","E5","F#5","G5","G5","G5",
-        "A5","B5","C6","D6","C6","B5","A5","G5","F#5","E5","D5",
-        "G5","F#5","E5","D5","C5","B4","A4","G4","F#5","E5","D5","C5","B4","A4","G4","F#4","G4"
-      ],
-      bass: [
-        "G2","D3","G2","D3","G2","D3","G2","D3","G2","D3","G2","D3","G2","D3","G2","D3",
-        "C3","G3","C3","G3","C3","G3","C3","G3","C3","G3","C3","G3","C3","G3","C3","G3",
-        "D3","A3","D3","A3","D3","A3","D3","A3","D3","A3","D3","A3","D3","A3","D3","A3",
-        "G2","D3","G2","D3","G2","D3","G2","D3","G2","D3","G2","D3","G2","D3","G2","D3"
-      ]
+  // Проиграть случайный MIDI-трек
+  async function playRandomMidi() {
+    if (!midiInstrument || midiList.length === 0) {
+      addEventLog("🎵 Нет MIDI-файлов для воспроизведения", true);
+      return;
     }
-  ];
-
-    let themeIdx = 0;
-    let noteIdx = 0;
-    let bassIdx = 0;
-    let activeTheme = classicalThemes[0];
-
-    Tone.Transport.bpm.rampTo(activeTheme.bpm, 0.8);
-
-    Tone.Transport.scheduleRepeat(() => {
-      activeTheme = classicalThemes[themeIdx % classicalThemes.length];
-      noteIdx = 0;
-      bassIdx = 0;
-      themeIdx++;
-      Tone.Transport.bpm.rampTo(activeTheme.bpm, 1.2);
-      addEventLog(`🎼 Играет: ${activeTheme.title}`, false);
-    }, 60);
-
-    Tone.Transport.scheduleRepeat((time) => {
-      const note = activeTheme.melody[noteIdx % activeTheme.melody.length];
-      musicVoice.triggerAttackRelease(note, "4n", time, 0.18);
-      noteIdx++;
-    }, "4n");
-
-    Tone.Transport.scheduleRepeat((time) => {
-      const note = activeTheme.bass[bassIdx % activeTheme.bass.length];
-      musicVoice.triggerAttackRelease(note, "2n", time, 0.12);
-      bassIdx++;
-    }, "2n");
-
-  // ================= AMBIENT =================
-  } else {
-
-    const ambientThemes = [
-      // Медленная гармоничная тема в C мажоре
-      ["C4","E4","G4","E4","C4","D4","E4","G4","A4","G4","E4","D4","C4"],
-      // Плавная тема в A миноре
-      ["A3","C4","E4","C4","A3","B3","C4","E4","F#4","E4","C4","B3","A3"],
-      // Эмбиентная тема в D мажоре
-      ["D4","F#4","A4","F#4","D4","E4","F#4","A4","B4","A4","F#4","E4","D4"],
-      // Спокойная тема в G мажоре
-      ["G3","B3","D4","B3","G3","A3","B3","D4","E4","D4","B3","A3","G3"],
-      // Минорная эмбиентная тема
-      ["E3","G3","B3","G3","E3","F#3","G3","B3","C#4","B3","G3","F#3","E3"]
-    ];
-
-    const ambientPads = [
-      // Богатые аккорды для атмосферного звучания
-      ["C3","E3","G3","C4"],
-      ["A2","C3","E3","A3"],
-      ["D3","F#3","A3","D4"],
-      ["G2","B2","D3","G3"],
-      ["E2","G#2","B2","E3"]
-    ];
-
-    let themeIdx = 0;
-    let noteIdx = 0;
-    let padIdx = 0;
-    let currentTheme = ambientThemes[0];
-
-    // 🔁 Смена эмбиентной темы каждые 30–60 сек
-    function scheduleThemeSwitch() {
-      const nextTime = Math.random() * 30 + 30;
-
-      Tone.Transport.scheduleOnce(() => {
-        themeIdx = (themeIdx + 1) % ambientThemes.length;
-        currentTheme = ambientThemes[themeIdx];
-        noteIdx = 0;
-
-        addEventLog(`🌌 Эмбиентная тема #${themeIdx + 1}`, false);
-
-        scheduleThemeSwitch();
-      }, `+${nextTime}`);
-    }
-
-    scheduleThemeSwitch();
-
-    // 🎹 Основная мелодия
-    Tone.Transport.scheduleRepeat((time) => {
-      const note = currentTheme[noteIdx % currentTheme.length];
-
-      synth.triggerAttackRelease(note, "2n", time, 0.18);
-
-      // Октавный слой для насыщенности
-      synth.triggerAttackRelease(
-        Tone.Frequency(note).transpose(12),
-        "2n",
-        time + 0.05,
-        0.08
-      );
-
-      noteIdx++;
-    }, "2n");
-
-    // 🌌 Фоновые аккорды (пады)
-    Tone.Transport.scheduleRepeat((time) => {
-      const chord = ambientPads[padIdx % ambientPads.length];
-
-      chord.forEach((note, i) => {
-        synth.triggerAttackRelease(note, "1m", time + i * 0.05, 0.12);
+    stopMidiMusic();
+    
+    const fileName = midiList[Math.floor(Math.random() * midiList.length)];
+    addEventLog(`🎹 Загружаем MIDI: ${fileName}`, false);
+    
+    try {
+      const midi = await Midi.fromUrl(`/music/${fileName}`);
+      const now = Tone.now();
+      
+      midi.tracks.forEach(track => {
+        track.notes.forEach(note => {
+          const eventId = Tone.Transport.scheduleOnce((time) => {
+            if (midiInstrument && midiMusicEnabled) {
+              midiInstrument.play(note.name, time, {
+                duration: note.duration,
+                gain: note.velocity * 0.7
+              });
+            }
+          }, note.time);
+          currentMidiEvents.push(eventId);
+        });
       });
-
-      padIdx++;
-    }, "1m");
+      
+      if (Tone.Transport.state !== 'started') Tone.Transport.start();
+      addEventLog(`🎵 Играет: ${fileName}`, false);
+      
+      const maxDuration = midi.duration;
+      setTimeout(() => {
+        if (midiMusicEnabled && !isThinking && !game.gameOver) {
+          playRandomMidi();
+        }
+      }, maxDuration * 1000 + 500);
+      
+    } catch (err) {
+      console.error("Ошибка воспроизведения MIDI:", err);
+      addEventLog("❌ Ошибка загрузки MIDI-файла", true);
+    }
   }
 
-  Tone.Transport.start("+0.05");
-}
-  function updateMusicButtons() {
+  // Включить/выключить MIDI-музыку
+  async function toggleMidiMusic() {
+    if (!midiInstrument) await initMidiPlayer();
+    if (!midiInstrument) {
+      addEventLog("Ошибка: звуковой движок не готов", true);
+      return;
+    }
+    midiMusicEnabled = !midiMusicEnabled;
+    if (midiMusicEnabled) {
+      await playRandomMidi();
+      addEventLog("🎵 MIDI-музыка включена", false);
+    } else {
+      stopMidiMusic();
+      addEventLog("🔇 MIDI-музыка выключена", false);
+    }
+    updateMidiButtons();
+  }
+
+  // Обновить текст кнопок
+  function updateMidiButtons() {
     const musicBtn = document.getElementById('musicBtn');
-    const modeBtn = document.getElementById('musicModeBtn');
-    if (!musicBtn || !modeBtn) return;
-    musicBtn.textContent = musicEnabled ? '🔊' : '🔇';
-    modeBtn.textContent = musicMode === 'classical' ? '🎼' : '🌿';
-  }
-
-  async function toggleMusic() {
-    await ensureAudioStarted();
-    if (!soundReady) await initSound();
-    musicEnabled = !musicEnabled;
-    if (musicEnabled) startBackgroundMusic();
-    else stopBackgroundMusic();
-    updateMusicButtons();
-    addEventLog(musicEnabled ? `Музыка включена (${musicMode === 'classical' ? '🎼 Классические произведения' : '🌿 Атмосферный эмбиент'})` : "Музыка выключена", false);
-  }
-
-  async function cycleMusicMode() {
-    await ensureAudioStarted();
-    if (!soundReady) await initSound();
-    musicMode = (musicMode === 'ambient') ? 'classical' : 'ambient';
-    if (musicEnabled) startBackgroundMusic();
-    updateMusicButtons();
-    addEventLog(`Режим музыки: ${musicMode === 'classical' ? '🎼 Классические произведения' : '🌿 Атмосферный эмбиент'}`, false);
+    const midiBtn = document.getElementById('midiBtn');
+    if (musicBtn) musicBtn.textContent = midiMusicEnabled ? '🔊' : '🔇';
+    if (midiBtn) midiBtn.textContent = '🎲 Случайный трек';
   }
 
   function playTileSound(letter) {
@@ -2344,6 +2247,7 @@ function newGame() {
   async function initGame() {
     await loadDictionary();
     await initSound();
+    await initMidiPlayer();   // инициализация MIDI-плеера (не включает музыку автоматически)
     // Инициализация AnimationManager
     animManager = new AnimationManager();
     if (!dictReady) return;
@@ -2361,7 +2265,7 @@ function newGame() {
     game.selectedTile = null;
     drawTiles(0, 7);
     drawTiles(1, 7);
-    updateMusicButtons();
+    updateMidiButtons();
     renderBoard();
     renderHand();
     updateUI();
@@ -2371,8 +2275,11 @@ function newGame() {
   document.getElementById('swapBtn').onclick = () => skipTurn();
   document.getElementById('endBtn').onclick = () => endTurn();
   document.getElementById('hintBtn').onclick = () => requestHint();
-  document.getElementById('musicBtn').onclick = () => toggleMusic();
-  document.getElementById('musicModeBtn').onclick = () => cycleMusicMode();
+  document.getElementById('musicBtn').onclick = () => toggleMidiMusic();
+  document.getElementById('midiBtn').onclick = () => {
+    if (!midiInstrument) initMidiPlayer().then(() => playRandomMidi());
+    else playRandomMidi();
+  };
   document.addEventListener('pointerdown', ensureAudioStarted, { once: true });
   document.getElementById('newGameBtn').onclick = () => newGame();
   initGame();
