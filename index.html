@@ -1741,15 +1741,16 @@ async function loadDictionary() {
 // enumerateAssignments с отсечением по префиксу + восстановление fullMask
 function enumerateAssignments(emptyPositions, hand, fullMask, segment, callback) {
   const current = [];
-  function dfs(idx, used) {
+  const handLen = hand.length;
+  function dfs(idx, usedMask) {
     if (idx === emptyPositions.length) {
       callback(current.slice());
       return;
     }
     const pos = emptyPositions[idx];
     const maskIdx = pos - segment.start;
-    for (let h = 0; h < hand.length; h++) {
-      if (used.has(h)) continue;
+    for (let h = 0; h < handLen; h++) {
+      if (usedMask & (1 << h)) continue;
       const tile = hand[h];
       const letters = tile.star ? Object.keys(POINTS) : [tile.letter];
       for (let letter of letters) {
@@ -1760,13 +1761,13 @@ function enumerateAssignments(emptyPositions, hand, fullMask, segment, callback)
           continue;
         }
         current.push({ handIdx: h, letter, linePos: pos, originalTile: tile });
-        dfs(idx + 1, new Set(used).add(h));
+        dfs(idx + 1, usedMask | (1 << h));
         current.pop();
         fullMask[maskIdx] = null;
       }
     }
   }
-  dfs(0, new Set());
+  dfs(0, 0);
 }
 
 async function generateAllPossibleMovesAsync(playerIdx, onProgress, abortSignal) {
