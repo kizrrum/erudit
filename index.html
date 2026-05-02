@@ -545,6 +545,15 @@ class Trie {
     }
     return true;
   }
+  // Получить узел для префикса (для оптимизации рекурсии)
+  getNode(prefix) {
+    let node = this.root;
+    for (const ch of prefix) {
+      if (!node[ch]) return null;
+      node = node[ch];
+    }
+    return node;
+  }
 }
 let trie = null;
 
@@ -662,6 +671,15 @@ function createScrabbleWorker() {
         }
         return true;
       }
+      // Получить узел для префикса (для оптимизации рекурсии)
+      getNode(prefix) {
+        let node = this.root;
+        for (const ch of prefix) {
+          if (!node[ch]) return null;
+          node = node[ch];
+        }
+        return node;
+      }
     }
     
     let dictionary = new Set();
@@ -730,32 +748,39 @@ function createScrabbleWorker() {
     
     function enumerateAssignments(emptyPositions, hand, fullMask, segment, callback) {
       const current = [];
-      function dfs(idx, used) {
+      const handLen = hand.length;
+      // Предварительно вычисляем начальный префикс и узел Trie для него
+      let initialPrefix = '';
+      for (let i = 0; i < fullMask.length; i++) {
+        if (fullMask[i]) initialPrefix += fullMask[i];
+      }
+      const initialNode = trie ? trie.getNode(initialPrefix) : null;
+      if (trie && initialNode === null && initialPrefix.length > 0) return; // Начальный префикс уже недопустим
+      
+      function dfs(idx, usedMask, currentNode) {
         if (idx === emptyPositions.length) {
           callback(current.slice());
           return;
         }
         const pos = emptyPositions[idx];
         const maskIdx = pos - segment.start;
-        for (let h = 0; h < hand.length; h++) {
-          if (used.has(h)) continue;
+        for (let h = 0; h < handLen; h++) {
+          if (usedMask & (1 << h)) continue;
           const tile = hand[h];
           const letters = tile.star ? Object.keys(POINTS) : [tile.letter];
           for (let letter of letters) {
+            // Проверяем переход в Trie напрямую из текущего узла
+            if (currentNode && !currentNode[letter]) continue;
             fullMask[maskIdx] = letter;
-            let prefix = fullMask.map(ch => ch || '').join('');
-            if (trie && !trie.hasPrefix(prefix)) {
-              fullMask[maskIdx] = null;
-              continue;
-            }
+            const newNode = currentNode ? currentNode[letter] : null;
             current.push({ handIdx: h, letter, linePos: pos, originalTile: tile });
-            dfs(idx + 1, new Set(used).add(h));
+            dfs(idx + 1, usedMask | (1 << h), newNode);
             current.pop();
             fullMask[maskIdx] = null;
           }
         }
       }
-      dfs(0, new Set());
+      dfs(0, 0, initialNode);
     }
     
     function getNewWords(board, placedCells) {
@@ -1738,11 +1763,19 @@ async function loadDictionary() {
     return { mask, emptyPositions, hasExisting };
   }
 
-// enumerateAssignments с отсечением по префиксу + восстановление fullMask
+// enumerateAssignments с оптимизацией Trie (передача узла вместо сборки префикса)
 function enumerateAssignments(emptyPositions, hand, fullMask, segment, callback) {
   const current = [];
   const handLen = hand.length;
-  function dfs(idx, usedMask) {
+  // Предварительно вычисляем начальный префикс и узел Trie для него
+  let initialPrefix = '';
+  for (let i = 0; i < fullMask.length; i++) {
+    if (fullMask[i]) initialPrefix += fullMask[i];
+  }
+  const initialNode = trie ? trie.getNode(initialPrefix) : null;
+  if (trie && initialNode === null && initialPrefix.length > 0) return; // Начальный префикс уже недопустим
+  
+  function dfs(idx, usedMask, currentNode) {
     if (idx === emptyPositions.length) {
       callback(current.slice());
       return;
@@ -1754,20 +1787,18 @@ function enumerateAssignments(emptyPositions, hand, fullMask, segment, callback)
       const tile = hand[h];
       const letters = tile.star ? Object.keys(POINTS) : [tile.letter];
       for (let letter of letters) {
+        // Проверяем переход в Trie напрямую из текущего узла
+        if (currentNode && !currentNode[letter]) continue;
         fullMask[maskIdx] = letter;
-        let prefix = fullMask.map(ch => ch || '').join('');
-        if (trie && !trie.hasPrefix(prefix)) {
-          fullMask[maskIdx] = null;
-          continue;
-        }
+        const newNode = currentNode ? currentNode[letter] : null;
         current.push({ handIdx: h, letter, linePos: pos, originalTile: tile });
-        dfs(idx + 1, usedMask | (1 << h));
+        dfs(idx + 1, usedMask | (1 << h), newNode);
         current.pop();
         fullMask[maskIdx] = null;
       }
     }
   }
-  dfs(0, 0);
+  dfs(0, 0, initialNode);
 }
 
 async function generateAllPossibleMovesAsync(playerIdx, onProgress, abortSignal) {
