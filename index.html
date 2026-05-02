@@ -113,24 +113,25 @@
       from { opacity: 0; transform: translateY(30px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    h1 {
-      margin: 0 0 10px;
-      font-size: 1.8rem;
-      background: linear-gradient(165deg, #c7d4bd 0%, #8ea37f 45%, #5f7252 100%);
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
-      letter-spacing: 1px;
-      font-weight: 900;
-      text-shadow:
-        0 1px 0 rgba(223, 236, 213, 0.45),
-        0 2px 0 rgba(79, 96, 66, 0.55),
-        0 4px 8px rgba(0, 0, 0, 0.35),
-        0 10px 18px rgba(0, 0, 0, 0.28);
-      filter: drop-shadow(0 2px 2px rgba(45, 58, 40, 0.35));
-      transform: translateZ(0);
-    }
-    #stats {
+	h1 {
+	  margin: 0 0 10px;
+	  font-size: 1.8rem;
+	  font-weight: 900;
+	  letter-spacing: 1px;
+	  background: linear-gradient(135deg, #FFE68A, #FFB347, #FF8533);
+	  background-clip: text;
+	  -webkit-background-clip: text;
+	  color: transparent;
+	  text-shadow: 0 3px 5px rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.2), 0 1px 0 rgba(255,255,255,0.5);
+	  transform: perspective(500px) translateZ(0);
+	}
+
+	@keyframes warmGlow {
+	  0% { background-position: 0% 50%; }
+	  50% { background-position: 100% 50%; }
+	  100% { background-position: 0% 50%; }
+	}
+		#stats {
       display: flex;
       justify-content: space-between;
       gap: 20px;
