@@ -1,8 +1,5 @@
 !music/
-# Игнорировать всё
 /*
-
-# Кроме разрешённых файлов
 !README.md
 !Tone.js
 !index.html
