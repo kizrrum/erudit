@@ -9,3 +9,5 @@
 !package.json
 !words.txt
 !preload.js
+!midi.js
+!soundfont-player.min.js
