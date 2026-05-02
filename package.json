@@ -1,17 +1,38 @@
 {
-  "dependencies": {
-    "express": "^5.2.1"
-  },
-  "name": "erudit",
+  "name": "erudit-ai",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "description": "Эрудит против ИИ",
+  "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "electron .",
+    "build-linux": "electron-builder --linux"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.yourname.erudit",
+    "productName": "Эрудит ИИ",
+    "directories": {
+      "output": "dist"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "category": "Game",
+      "icon": "icon.png"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "words.txt",
+      "Tone.js",
+      "icon.png"
+    ]
+  }
 }
