@@ -1518,6 +1518,8 @@ async function loadDictionary() {
       trie.insert(upperWord);
     }
     dictReady = true;
+	renderBoard();   // добавить
+	renderHand();    // добавить
     statusDiv.innerHTML = `✅ Словарь загружен: ${dictionary.size} слов`;
     addEventLog(`Словарь загружен: ${dictionary.size} слов`, false);
     
@@ -1527,7 +1529,7 @@ async function loadDictionary() {
     scrabbleWorker.postMessage({ type: 'initDict', data: { words: wordsArray } });
     
     enableGameControls();
-    if (game && game.currentPlayer === 1) setTimeout(() => aiMakeMove(), 300);
+    typeof game !== 'undefined'
   } catch (e) {
     statusDiv.innerHTML = `❌ Ошибка: ${e.message}. Запустите сервер и проверьте words.txt`;
     dictReady = false;
@@ -1838,10 +1840,10 @@ async function loadDictionary() {
 		}
 	  }
 
-	  let oldLetter = removed[0] || '*';
-      let newLetter = game.bag[game.bag.length - replaceCount] || '?';
-      animManager?.add('swap', { oldLetter, newLetter });
-      let removed = game.hand[0].splice(0, replaceCount);
+		let removed = game.hand[0].splice(0, replaceCount);
+		let oldLetter = removed[0]?.letter || '*';
+		let newLetter = game.bag[game.bag.length - 1]?.letter || '?';
+		animManager?.add('swap', { oldLetter, newLetter });
 	  game.bag.push(...removed);
 	  shuffle(game.bag);
 	  drawTiles(0, replaceCount);
@@ -2368,15 +2370,17 @@ function newGame() {
     if (game.currentPlayer === 1) setTimeout(() => aiMakeMove(), 300);
   }
 
-  document.getElementById('swapBtn').onclick = () => skipTurn();
-  document.getElementById('endBtn').onclick = () => endTurn();
-  document.getElementById('hintBtn').onclick = () => requestHint();
-  document.getElementById('musicBtn').onclick = () => toggleMusic();
-  document.getElementById('musicModeBtn').onclick = () => cycleMusicMode();
-  document.addEventListener('pointerdown', ensureAudioStarted, { once: true });
-  document.getElementById('newGameBtn').onclick = () => newGame();
-  initGame();
-</script>
+	document.addEventListener('DOMContentLoaded', () => {
+		document.getElementById('swapBtn').onclick = () => skipTurn();
+		document.getElementById('endBtn').onclick = () => endTurn();
+		document.getElementById('hintBtn').onclick = () => requestHint();
+		document.getElementById('musicBtn').onclick = () => toggleMusic();
+		document.getElementById('musicModeBtn').onclick = () => cycleMusicMode();
+		document.addEventListener('pointerdown', ensureAudioStarted, { once: true });
+		document.getElementById('newGameBtn').onclick = () => newGame();
+		initGame();
+	});
+	</script>
 <!-- Кнопка помощи (добавляется в контейнер .controls) -->
 <style>
   /* Стили для модального окна */
