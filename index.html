@@ -448,6 +448,19 @@
   <script src="Tone.js"></script>
 </head>
 <body>
+<body>
+<script>
+// Аварийный перехват: вместо краша покажем ошибку на экране
+window.onerror = function(msg, url, line, col, error) {
+  document.body.innerHTML = '<pre style="color:red; background:#1a1b1f; padding:20px; white-space:pre-wrap;">' +
+    'КРИТИЧЕСКАЯ ОШИБКА:\n' + msg +
+    '\n\nURL: ' + url +
+    '\nСтрока: ' + line + ', колонка: ' + col +
+    '\n\nСтек:\n' + (error && error.stack ? error.stack : 'нет стека') +
+    '</pre>';
+  return false;
+};
+</script>
 <div id="layout">
 <aside id="event-log-panel" aria-label="Журнал событий">
   <div id="event-log-title">Журнал событий</div>
@@ -528,11 +541,66 @@
 <div id="dict-status" style="font-size: 0.7rem; margin-top: 8px;">Словарь: загрузка...</div>
 
 <div id="msg"></div>
+
+<div id="custom-dialog-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center;">
+  <div id="custom-dialog-box" style="background:#1e2a25; border:1px solid #7f8c6d; border-radius:16px; padding:20px; color:#e0e8dc; font-family:sans-serif; min-width:280px; text-align:center;">
+    <p id="custom-dialog-message" style="margin-top:0;"></p>
+    <input id="custom-dialog-input" type="text" maxlength="1" style="padding:6px; font-size:18px; width:60px; text-align:center;" />
+    <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
+      <button id="custom-dialog-ok" style="background:#2ecc71; border:none; padding:6px 18px; border-radius:20px; cursor:pointer; font-weight:bold;">OK</button>
+      <button id="custom-dialog-cancel" style="background:#e74c3c; border:none; padding:6px 18px; border-radius:20px; cursor:pointer; font-weight:bold;">Отмена</button>
+    </div>
+  </div>
+</div>
+
 <div id="hint-popup" aria-live="polite"></div>
 </div>
 </div>
 
 <script>
+
+// Замена prompt: асинхронный диалог
+function showCustomDialog(message, defaultValue = '', validator = null) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('custom-dialog-overlay');
+    const input = document.getElementById('custom-dialog-input');
+    const msg = document.getElementById('custom-dialog-message');
+    const okBtn = document.getElementById('custom-dialog-ok');
+    const cancelBtn = document.getElementById('custom-dialog-cancel');
+
+    msg.textContent = message;
+    input.value = defaultValue;
+    overlay.style.display = 'flex';
+    input.focus();
+
+    function cleanup() {
+      overlay.style.display = 'none';
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+    }
+
+    function onOk() {
+      const val = input.value.trim().toUpperCase();
+      if (validator && !validator(val)) {
+        input.style.border = '2px solid red';
+        return;
+      }
+      cleanup();
+      resolve(val);
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(null);
+    }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') onOk();
+    });
+  });
+}
 
 // Простейшая адаптация под мобильные устройства
 (function() {
@@ -1058,26 +1126,10 @@ function getBestMoveFromWorker(board, hand, firstMove) {
   });
 }
 
-  async function initSound() {
-    if (soundReady) return;
-    // Классические произведения: реалистичный рояль
-    pianoReverb = new Tone.Reverb({
-      decay: 2.8,
-      wet: 0.2
-    }).toDestination();
-    piano = new Tone.Sampler({
-      urls: {
-        "C4": "C4.mp3",
-        "D#4": "Ds4.mp3",
-        "F#4": "Fs4.mp3",
-        "A4": "A4.mp3",
-      },
-      release: 1,
-      baseUrl: "https://tonejs.github.io/audio/salamander/",
-    }).connect(pianoReverb);
-    piano.volume.value = -6;
-
-    // Атмосферный эмбиентный синтезатор
+async function initSound() {
+  if (soundReady) return;
+  try {
+    // Полифонический синтезатор
     synth = new Tone.PolySynth(Tone.FMSynth, {
       harmonicity: 2.5,
       modulationIndex: 8,
@@ -1100,11 +1152,13 @@ function getBestMoveFromWorker(board, hand, firstMove) {
       oscillator: { type: "sine" }
     });
 
-    synthReverb = new Tone.Reverb({
-      decay: 4.5,
-      wet: 0.45
+    // Безопасный ревербератор (JCReverb)
+    synthReverb = new Tone.JCReverb({
+      roomSize: 0.7,
+      wet: 0.35
     }).toDestination();
 
+    // Хорус
     synthChorus = new Tone.Chorus({
       frequency: 1.2,
       delayTime: 3.2,
@@ -1112,13 +1166,14 @@ function getBestMoveFromWorker(board, hand, firstMove) {
       wet: 0.35
     }).connect(synthReverb);
 
+    // Дилей
     synthDelay = new Tone.FeedbackDelay({
       delayTime: 0.32,
       feedback: 0.28,
       wet: 0.2
     }).connect(synthChorus);
 
-    // === AMBIENT EFFECTS ===
+    // Фильтр с LFO и авто‑панорама
     ambientFilter = new Tone.Filter({
       type: "lowpass",
       frequency: 1200,
@@ -1136,8 +1191,7 @@ function getBestMoveFromWorker(board, hand, firstMove) {
       depth: 0.6
     }).start();
 
-    // Перестраиваем цепочку
-    synth.disconnect();
+    // Собираем цепочку
     synth.chain(
       ambientFilter,
       ambientPan,
@@ -1150,11 +1204,80 @@ function getBestMoveFromWorker(board, hand, firstMove) {
     synth.volume.value = -1;
     ambientLFO.start();
 
-    await Tone.loaded();
+    // Пианино отключено, чтобы не было обращений к внешним семплам
+    piano = null;
+    pianoReverb = null;
+
+    // Не вызываем Tone.loaded() – он может зависнуть в Electron
     soundReady = true;
-    console.log("🎛 Синтезатор готов (классика + эмбиент)");
+    console.log("🎛 Полный синтезатор с эффектами готов (JCReverb)");
+  } catch (e) {
+    console.warn('Ошибка инициализации звука', e);
+    // Если даже JCReverb не создался, оставляем хотя бы сухой синтезатор
+    try {
+      synth = new Tone.PolySynth().toDestination();
+      soundReady = true;
+      console.log("🎛 Запасной сухой синтезатор готов");
+    } catch (e2) {
+      console.warn('Звук полностью отключён', e2);
+    }
+  }
+}
+async function initSoundOLD() {
+  if (soundReady) return;
+  
+  console.log('🎵 initSound: старт');
+  
+  try {
+    // Пытаемся создать синтезатор
+    console.log('🎵 Создаём синтезатор...');
+    synth = new Tone.PolySynth(Tone.FMSynth, {
+      harmonicity: 2.5,
+      modulationIndex: 8,
+      envelope: { attack: 0.15, decay: 0.3, sustain: 0.4, release: 1.8 },
+      modulation: { type: "sine", frequency: 0.5, envelope: { attack: 0.2, decay: 0, sustain: 0.8, release: 2 } },
+      oscillator: { type: "sine" }
+    });
+    console.log('✅ Синтезатор создан');
+  } catch (e) {
+    console.error('❌ Ошибка создания синтезатора:', e);
+    return;  // без звука, но игра продолжит
   }
 
+  try {
+    console.log('🎵 Создаём эффекты...');
+    synthReverb = new Tone.Reverb({ decay: 4.5, wet: 0.45 }).toDestination();
+    synthChorus = new Tone.Chorus({ frequency: 1.2, delayTime: 3.2, depth: 0.7, wet: 0.35 }).connect(synthReverb);
+    synthDelay = new Tone.FeedbackDelay({ delayTime: 0.32, feedback: 0.28, wet: 0.2 }).connect(synthChorus);
+
+    ambientFilter = new Tone.Filter({ type: "lowpass", frequency: 1200, Q: 0.6 });
+    ambientLFO = new Tone.LFO({ frequency: 0.05, min: 400, max: 3200 }).connect(ambientFilter.frequency);
+    ambientPan = new Tone.AutoPanner({ frequency: 0.02, depth: 0.6 }).start();
+
+    synth.chain(ambientFilter, ambientPan, synthDelay, synthChorus, synthReverb, Tone.Destination);
+    synth.volume.value = -1;
+    ambientLFO.start();
+    console.log('✅ Эффекты подключены');
+  } catch (e) {
+    console.error('❌ Ошибка эффектов:', e);
+    synth = null; // отключаем звук, но не роняем
+    return;
+  }
+
+  // Убираем пианино (не используется)
+  piano = null;
+  if (pianoReverb) { pianoReverb.dispose(); pianoReverb = null; }
+
+  try {
+    console.log('🎵 Завершаем инициализацию (Tone.loaded)...');
+    await Tone.loaded();
+    soundReady = true;
+    console.log("🎛 Синтезатор готов");
+  } catch (e) {
+    console.warn('⚠️ Tone.loaded не удался, но звук может работать:', e);
+    soundReady = true; // всё равно пробуем
+  }
+}
   const noteMap = {
     'А': 'C4',  'Б': 'C#4', 'В': 'D4',  'Г': 'D#4',
     'Д': 'E4',  'Е': 'F4',  'Ё': 'F4',  'Ж': 'F#4',
@@ -1189,7 +1312,7 @@ function getBestMoveFromWorker(board, hand, firstMove) {
   stopBackgroundMusic();
 
   Tone.Transport.bpm.value = (musicMode === 'classical') ? 108 : 52;
-  const musicVoice = (musicMode === 'ambient') ? synth : piano;
+  const musicVoice = synth;
   if (!musicVoice) return;
 
     // ================= КЛАССИКА =================
@@ -1393,18 +1516,18 @@ function getBestMoveFromWorker(board, hand, firstMove) {
   }
 
   function playTileSound(letter) {
-    if (!piano || !soundReady) return;
+    if (!synth || !soundReady) return;
     const note = noteMap[String(letter || '*').toUpperCase()] || 'C5';
     const velocity = 0.6 + Math.random() * 0.25;
-    piano.triggerAttackRelease(note, "8n", Tone.now(), velocity);
+    synth.triggerAttackRelease(note, "8n", Tone.now(), velocity);
   }
 
   function playSuccessSound() {
-    if (!piano || !soundReady) return;
+    if (!synth || !soundReady) return;
     const notes = ["C4", "E4", "G4", "C5"];
     let time = Tone.now();
     notes.forEach((note, i) => {
-      piano.triggerAttackRelease(note, "4n", time + i * 0.13, 0.65);
+      synth.triggerAttackRelease(note, "4n", time + i * 0.13, 0.65);
     });
   }
   const MAX_EVENT_LOG_ITEMS = 140;
@@ -1428,9 +1551,18 @@ function getBestMoveFromWorker(board, hand, firstMove) {
 async function loadDictionary() {
   const statusDiv = document.getElementById('dict-status');
   try {
-    const response = await fetch('words.txt');
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const text = await response.text();
+    let text;
+    // === Загрузка словаря: Electron или браузер ===
+    if (window.electronAPI && window.electronAPI.readDictionary) {
+      // Запущено в Electron – читаем словарь через IPC (без fetch)
+      text = await window.electronAPI.readDictionary();
+    } else {
+      // Обычный браузер – загружаем файл через fetch
+      const response = await fetch('words.txt');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      text = await response.text();
+    }
+
     const words = text.split(/\r?\n/).filter(w => w.trim().length > 0);
     dictionary.clear();
     trie = new Trie();
@@ -1614,7 +1746,7 @@ async function loadDictionary() {
 }
 
   // ---------- ХОД ЧЕЛОВЕКА ----------
-  function placeOnBoard(r,c) {
+  async function placeOnBoard(r,c) {
     if (!dictReady) { showMsg("Словарь ещё не загружен", true); return; }
     if (game.gameOver) return;
     if (game.currentPlayer !== 0) { showMsg("Сейчас ход ИИ", true); return; }
@@ -1624,8 +1756,11 @@ async function loadDictionary() {
     let { playerIdx, handIndex } = game.selectedTile;
     let tile = game.hand[playerIdx][handIndex];
     if (tile.star && !tile.replaces) {
-      let letter = prompt("Звёздочка заменяет букву (А-Я)", "А")?.toUpperCase();
-      if (!letter || !POINTS[letter]) { showMsg("Некорректная буква", true); return; }
+      let letter = await showCustomDialog("Звёздочка заменяет букву (А-Я)", "А",
+	  (val) => val && /^[А-ЯЁ]$/.test(val)
+	);
+	if (!letter) { showMsg("Буква не выбрана", true); return; }
+    //  if (!letter || !POINTS[letter]) { showMsg("Некорректная буква", true); return; }
       tile.replaces = letter;
       tile.points = POINTS[letter];
     }
@@ -1707,7 +1842,7 @@ async function loadDictionary() {
     setTimeout(() => aiMakeMove(), 600);
   }
 
-	function skipTurn() {
+	async function skipTurn() {
 	  if (!dictReady) { showMsg("Словарь не загружен", true); return; }
 	  if (game.gameOver) return;
 	  if (game.currentPlayer !== 0) { showMsg("Сейчас ход ИИ", true); return; }
@@ -1725,8 +1860,18 @@ async function loadDictionary() {
 		return;
 	  }
 
-	  let replaceCount = prompt(`У вас ${handSize} фишек. Сколько заменить? (1-${handSize})`, "1");
-	  replaceCount = parseInt(replaceCount, 10);
+	  let replaceCountStr = await showCustomDialog(`Сколько фишек заменить? (1-${handSize})`, "1",
+		  (val) => val && /^\d+$/.test(val) && parseInt(val) >= 1 && parseInt(val) <= handSize
+		);
+		if (replaceCountStr === null) {
+		  showMsg("Замена отменена, ход пропущен", true);
+		  game.currentPlayer = 1;
+		  updateUI();
+		  setTimeout(() => aiMakeMove(), 500);
+		  return;
+		}
+		let replaceCount = parseInt(replaceCountStr, 10);
+	 // replaceCount = parseInt(replaceCount, 10);
 	  if (isNaN(replaceCount) || replaceCount < 1 || replaceCount > handSize) {
 		showMsg("Неверное количество, пропуск без замены", true);
 		game.currentPlayer = 1;
