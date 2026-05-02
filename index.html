@@ -454,7 +454,8 @@
 </aside>
 <div id="app">
 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 12px;">
-  <svg width="196" height="67" viewBox="0 0 560 190" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <svg width="196" height="67" viewBox="0 0 560 190" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
   <defs>
     <linearGradient id="grad" x1="30%" y1="0%" x2="70%" y2="100%">
       <stop offset="0%" stop-color="#86efac"/>
@@ -503,25 +504,30 @@
   </rect>
 
 </svg>
+    <div id="turn">🎯 Ход: Игрок</div>
+  </div>
   <div style="display: flex; gap: 12px;">
     <div id="p1" style="background: #27ae60; padding: 6px 18px; border-radius: 40px; color: white; font-weight: bold; font-size: 1.2rem;">🧑 0</div>
     <div id="p2" style="background: #2980b9; padding: 6px 18px; border-radius: 40px; color: white; font-weight: bold; font-size: 1.2rem;">🤖 0</div>
   </div>
 </div>
-<div id="dict-status">Словарь: загрузка...</div>
-  <div id="turn">🎯 Ход: Игрок</div>
-  <div id="board" style="position: relative;"></div>
-  <div id="hand"></div>
-  <div id="controls">
-    <button class="pass" id="swapBtn">⏭️ Пропуск</button>
-    <button class="check" id="endBtn">✅ Готово</button>
-    <button class="hint-btn" id="hintBtn" title="Подсказка">💡</button>
-    <button class="music-toggle" id="musicBtn" title="Музыка"></button>
-    <button class="music-mode" id="musicModeBtn" title="Режим музыки"></button>
-    <button id="newGameBtn" title="Перезапуск игры">🔄</button>
-  </div>
-  <div id="msg"></div>
-  <div id="hint-popup" aria-live="polite"></div>
+
+<div id="board" style="position: relative;"></div>
+<div id="hand"></div>
+<div id="controls">
+  <button class="pass" id="swapBtn">⏭️ Пропуск</button>
+  <button class="check" id="endBtn">✅ Готово</button>
+  <button class="hint-btn" id="hintBtn" title="Подсказка">💡</button>
+  <button class="music-toggle" id="musicBtn" title="Музыка"></button>
+  <button class="music-mode" id="musicModeBtn" title="Режим музыки"></button>
+  <button id="newGameBtn" title="Перезапуск игры">🔄</button>
+</div>
+
+<!-- Статус словаря перенесён СЮДА (под кнопки) -->
+<div id="dict-status" style="font-size: 0.7rem; margin-top: 8px;">Словарь: загрузка...</div>
+
+<div id="msg"></div>
+<div id="hint-popup" aria-live="polite"></div>
 </div>
 </div>
 
