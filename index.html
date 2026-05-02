@@ -1305,7 +1305,7 @@ async function initSound() {
     addEventLog(`🎹 Загружаем MIDI: ${fileName}`, false);
     
     try {
-      const midi = await Midi.fromUrl(`/music/${fileName}`);
+      const midi = await Midi.fromUrl(`music/${fileName}`);
       const now = Tone.now();
       
       midi.tracks.forEach(track => {
