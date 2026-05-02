@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Я vs ИИ – с эффектами</title>
+  <title>Вы vs ИИ – с эффектами</title>
   <style>
     :root {
       --cell: 38px;
@@ -412,6 +412,14 @@
         height: 180px;
       }
     }
+
+	/* === Фоновый узор (мелкий паттерн - "ромашки") === */
+	body {
+	  background-color: #1a1b1f;
+	  background-image: radial-gradient(circle at 20px 20px, rgba(180, 210, 170, 0.15) 1.5px, transparent 1.5px);
+	  background-size: 40px 40px;
+	  position: relative;
+	}
   </style>
   <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>-->
   <script src="Tone.js"></script>
@@ -423,12 +431,14 @@
   <ul id="event-log"></ul>
 </aside>
 <div id="app">
-  <h1>🎲 Я vs ИИ ✨</h1>
-  <div id="dict-status">Словарь: загрузка...</div>
-  <div id="stats">
-    <div id="p1">🧑 Игрок: 0</div>
-    <div id="p2">🤖 AI: 0</div>
+<div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 12px;">
+  <h1 style="margin: 0;">🎲 Вы vs ИИ ✨</h1>
+  <div style="display: flex; gap: 12px;">
+    <div id="p1" style="background: #27ae60; padding: 6px 18px; border-radius: 40px; color: white; font-weight: bold; font-size: 1.2rem;">🧑 0</div>
+    <div id="p2" style="background: #2980b9; padding: 6px 18px; border-radius: 40px; color: white; font-weight: bold; font-size: 1.2rem;">🤖 0</div>
   </div>
+</div>
+<div id="dict-status">Словарь: загрузка...</div>
   <div id="turn">🎯 Ход: Игрок</div>
   <div id="board"></div>
   <div id="hand"></div>
@@ -2227,7 +2237,7 @@ function newGame() {
 <div id="helpModal" class="modal">
   <div class="modal-content">
     <span class="close-btn">&times;</span>
-    <h2>🎲 Как играть в «Я vs ИИ»</h2>
+    <h2>🎲 Как играть в «Вы vs ИИ»</h2>
     <h3>Цель</h3>
     <p>Набрать <strong>200 очков</strong> быстрее, чем противник (ИИ). Очки даются за составление слов из букв.</p>
     
