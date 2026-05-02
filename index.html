@@ -1273,9 +1273,8 @@ async function initSound() {
         // Electron: используем IPC
         files = await window.electronAPI.getMidiList();
       } else {
-        // Веб: загружаем midi-list.json
-        const response = await fetch('midi-list.json');
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        // Веб: пробуем fetch
+        const response = await fetch('/midi-list.json');
         files = await response.json();
       }
       midiList = files;
