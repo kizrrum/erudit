@@ -33,6 +33,6 @@
    npm install
 Запустите сервер:
 
-bash
+   ```bash
 node server.js
 Откройте браузер и перейдите по адресу http://localhost:3000 — игра запустится.
