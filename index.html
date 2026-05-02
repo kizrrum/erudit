@@ -1223,61 +1223,7 @@ async function initSound() {
     }
   }
 }
-async function initSoundOLD() {
-  if (soundReady) return;
-  
-  console.log('🎵 initSound: старт');
-  
-  try {
-    // Пытаемся создать синтезатор
-    console.log('🎵 Создаём синтезатор...');
-    synth = new Tone.PolySynth(Tone.FMSynth, {
-      harmonicity: 2.5,
-      modulationIndex: 8,
-      envelope: { attack: 0.15, decay: 0.3, sustain: 0.4, release: 1.8 },
-      modulation: { type: "sine", frequency: 0.5, envelope: { attack: 0.2, decay: 0, sustain: 0.8, release: 2 } },
-      oscillator: { type: "sine" }
-    });
-    console.log('✅ Синтезатор создан');
-  } catch (e) {
-    console.error('❌ Ошибка создания синтезатора:', e);
-    return;  // без звука, но игра продолжит
-  }
 
-  try {
-    console.log('🎵 Создаём эффекты...');
-    synthReverb = new Tone.Reverb({ decay: 4.5, wet: 0.45 }).toDestination();
-    synthChorus = new Tone.Chorus({ frequency: 1.2, delayTime: 3.2, depth: 0.7, wet: 0.35 }).connect(synthReverb);
-    synthDelay = new Tone.FeedbackDelay({ delayTime: 0.32, feedback: 0.28, wet: 0.2 }).connect(synthChorus);
-
-    ambientFilter = new Tone.Filter({ type: "lowpass", frequency: 1200, Q: 0.6 });
-    ambientLFO = new Tone.LFO({ frequency: 0.05, min: 400, max: 3200 }).connect(ambientFilter.frequency);
-    ambientPan = new Tone.AutoPanner({ frequency: 0.02, depth: 0.6 }).start();
-
-    synth.chain(ambientFilter, ambientPan, synthDelay, synthChorus, synthReverb, Tone.Destination);
-    synth.volume.value = -1;
-    ambientLFO.start();
-    console.log('✅ Эффекты подключены');
-  } catch (e) {
-    console.error('❌ Ошибка эффектов:', e);
-    synth = null; // отключаем звук, но не роняем
-    return;
-  }
-
-  // Убираем пианино (не используется)
-  piano = null;
-  if (pianoReverb) { pianoReverb.dispose(); pianoReverb = null; }
-
-  try {
-    console.log('🎵 Завершаем инициализацию (Tone.loaded)...');
-    await Tone.loaded();
-    soundReady = true;
-    console.log("🎛 Синтезатор готов");
-  } catch (e) {
-    console.warn('⚠️ Tone.loaded не удался, но звук может работать:', e);
-    soundReady = true; // всё равно пробуем
-  }
-}
   const noteMap = {
     'А': 'C4',  'Б': 'C#4', 'В': 'D4',  'Г': 'D#4',
     'Д': 'E4',  'Е': 'F4',  'Ё': 'F4',  'Ж': 'F#4',
