@@ -1686,7 +1686,6 @@ async function loadDictionary() {
     animateScore('p1');
     showMsg(`✨ +${moveScore} очков!`, false);
     playSuccessSound();
-    animManager?.add('wave');
     // Добавляем в журнал список слов, которые только что составил игрок
     let wordsList = newWords.map(w => w.text).join(', ');
     addEventLog(`🧑 Игрок добавил слова: ${wordsList}  (+${moveScore} очков)`, false);
@@ -2061,7 +2060,6 @@ async function aiMakeMove() {
     drawTiles(1, 7 - game.hand[1].length);
     game.pendingPlaced = [];
     game.firstMove = false;
-    animManager?.add('wave');
     if (game.scores[1] >= WIN_SCORE) {
       await animManager?.add('win');
       game.gameOver = true;
@@ -2218,7 +2216,6 @@ function newGame() {
     animManager.queue = [];
     animManager.isAnimating = false;
     animManager.winSvg.style.display = 'none';
-    animManager.waveSvg.style.display = 'none';
     animManager.swapSvg.style.display = 'none';
   }
   enableGameControls();
@@ -2447,7 +2444,6 @@ function newGame() {
       this.isAnimating = false;
       this.layer = document.getElementById('animation-layer');
       this.winSvg = document.getElementById('anim-win');
-      this.waveSvg = document.getElementById('anim-wave');
       this.swapSvg = document.getElementById('anim-swap');
       this.swapOldLetter = document.getElementById('swap-old-letter');
       this.swapNewLetter = document.getElementById('swap-new-letter');
@@ -2484,9 +2480,6 @@ function newGame() {
         case 'win':
           await this._playWin();
           break;
-        case 'wave':
-          await this._playWave();
-          break;
         case 'swap':
           await this._playSwap(options);
           break;
@@ -2500,15 +2493,6 @@ function newGame() {
       await this._wait(2100);
       this.winSvg.classList.remove('win');
       this.winSvg.style.display = 'none';
-    }
-
-    async _playWave() {
-      playWaveSound();
-      this.waveSvg.style.display = 'block';
-      this.waveSvg.classList.add('wave');
-      await this._wait(1800);
-      this.waveSvg.classList.remove('wave');
-      this.waveSvg.style.display = 'none';
     }
 
     async _playSwap(options) {
@@ -2531,15 +2515,6 @@ function newGame() {
   }
 
   // ========== Звуковые эффекты для анимаций ==========
-  function playWaveSound() {
-    if (!synth || !soundReady) return;
-    const waveNotes = ["C3", "G3", "C4", "E4", "G4"];
-    let time = Tone.now();
-    waveNotes.forEach((note, i) => {
-      synth.triggerAttackRelease(note, "4n", time + i * 0.12, 0.4);
-    });
-  }
-
   function playSwapSound() {
     if (!synth || !soundReady) return;
     synth.triggerAttackRelease("A#3", "8n", Tone.now(), 0.5);
@@ -2589,69 +2564,6 @@ function newGame() {
     <text x="260" y="40" text-anchor="middle" fill="#e5e7eb" font-family="Inter, Arial" font-size="24">ПОБЕДА!</text>
   </svg>
 
-  <svg id="anim-wave" viewBox="0 0 420 420" width="100%" height="100%" style="display: none; position: absolute; top: 0; left: 0; pointer-events: none; z-index: 50;" xmlns="http://www.w3.org/2000/svg">
-    <style>
-      .tile { fill: rgba(31, 41, 55, 0.5); transition: fill 0.2s; }
-      #anim-wave.wave .tile { animation: wave 400ms ease forwards; animation-delay: calc(var(--i) * 25ms); }
-      @keyframes wave {
-        0%   { fill: rgba(31, 41, 55, 0.5); transform: scale(1); }
-        50%  { fill: rgba(34, 197, 94, 0.5); transform: scale(1.08); }
-        100% { fill: rgba(31, 41, 55, 0.5); transform: scale(1); }
-      }
-    </style>
-    <rect width="420" height="420" rx="20" fill="none"/>
-    <g transform="translate(20,20)">
-      <rect class="tile" x="0" y="0" width="50" height="50" rx="8" style="--i:0"/>
-      <rect class="tile" x="60" y="0" width="50" height="50" rx="8" style="--i:1"/>
-      <rect class="tile" x="120" y="0" width="50" height="50" rx="8" style="--i:2"/>
-      <rect class="tile" x="180" y="0" width="50" height="50" rx="8" style="--i:3"/>
-      <rect class="tile" x="240" y="0" width="50" height="50" rx="8" style="--i:4"/>
-      <rect class="tile" x="300" y="0" width="50" height="50" rx="8" style="--i:5"/>
-      <rect class="tile" x="360" y="0" width="50" height="50" rx="8" style="--i:6"/>
-      <rect class="tile" x="0" y="60" width="50" height="50" rx="8" style="--i:1"/>
-      <rect class="tile" x="60" y="60" width="50" height="50" rx="8" style="--i:2"/>
-      <rect class="tile" x="120" y="60" width="50" height="50" rx="8" style="--i:3"/>
-      <rect class="tile" x="180" y="60" width="50" height="50" rx="8" style="--i:4"/>
-      <rect class="tile" x="240" y="60" width="50" height="50" rx="8" style="--i:5"/>
-      <rect class="tile" x="300" y="60" width="50" height="50" rx="8" style="--i:6"/>
-      <rect class="tile" x="360" y="60" width="50" height="50" rx="8" style="--i:7"/>
-      <rect class="tile" x="0" y="120" width="50" height="50" rx="8" style="--i:2"/>
-      <rect class="tile" x="60" y="120" width="50" height="50" rx="8" style="--i:3"/>
-      <rect class="tile" x="120" y="120" width="50" height="50" rx="8" style="--i:4"/>
-      <rect class="tile" x="180" y="120" width="50" height="50" rx="8" style="--i:5"/>
-      <rect class="tile" x="240" y="120" width="50" height="50" rx="8" style="--i:6"/>
-      <rect class="tile" x="300" y="120" width="50" height="50" rx="8" style="--i:7"/>
-      <rect class="tile" x="360" y="120" width="50" height="50" rx="8" style="--i:8"/>
-      <rect class="tile" x="0" y="180" width="50" height="50" rx="8" style="--i:3"/>
-      <rect class="tile" x="60" y="180" width="50" height="50" rx="8" style="--i:4"/>
-      <rect class="tile" x="120" y="180" width="50" height="50" rx="8" style="--i:5"/>
-      <rect class="tile" x="180" y="180" width="50" height="50" rx="8" style="--i:6"/>
-      <rect class="tile" x="240" y="180" width="50" height="50" rx="8" style="--i:7"/>
-      <rect class="tile" x="300" y="180" width="50" height="50" rx="8" style="--i:8"/>
-      <rect class="tile" x="360" y="180" width="50" height="50" rx="8" style="--i:9"/>
-      <rect class="tile" x="0" y="240" width="50" height="50" rx="8" style="--i:4"/>
-      <rect class="tile" x="60" y="240" width="50" height="50" rx="8" style="--i:5"/>
-      <rect class="tile" x="120" y="240" width="50" height="50" rx="8" style="--i:6"/>
-      <rect class="tile" x="180" y="240" width="50" height="50" rx="8" style="--i:7"/>
-      <rect class="tile" x="240" y="240" width="50" height="50" rx="8" style="--i:8"/>
-      <rect class="tile" x="300" y="240" width="50" height="50" rx="8" style="--i:9"/>
-      <rect class="tile" x="360" y="240" width="50" height="50" rx="8" style="--i:10"/>
-      <rect class="tile" x="0" y="300" width="50" height="50" rx="8" style="--i:5"/>
-      <rect class="tile" x="60" y="300" width="50" height="50" rx="8" style="--i:6"/>
-      <rect class="tile" x="120" y="300" width="50" height="50" rx="8" style="--i:7"/>
-      <rect class="tile" x="180" y="300" width="50" height="50" rx="8" style="--i:8"/>
-      <rect class="tile" x="240" y="300" width="50" height="50" rx="8" style="--i:9"/>
-      <rect class="tile" x="300" y="300" width="50" height="50" rx="8" style="--i:10"/>
-      <rect class="tile" x="360" y="300" width="50" height="50" rx="8" style="--i:11"/>
-      <rect class="tile" x="0" y="360" width="50" height="50" rx="8" style="--i:6"/>
-      <rect class="tile" x="60" y="360" width="50" height="50" rx="8" style="--i:7"/>
-      <rect class="tile" x="120" y="360" width="50" height="50" rx="8" style="--i:8"/>
-      <rect class="tile" x="180" y="360" width="50" height="50" rx="8" style="--i:9"/>
-      <rect class="tile" x="240" y="360" width="50" height="50" rx="8" style="--i:10"/>
-      <rect class="tile" x="300" y="360" width="50" height="50" rx="8" style="--i:11"/>
-      <rect class="tile" x="360" y="360" width="50" height="50" rx="8" style="--i:12"/>
-    </g>
-  </svg>
 
   <svg id="anim-swap" viewBox="0 0 240 120" width="240" height="120" style="display: none;" xmlns="http://www.w3.org/2000/svg">
     <style>
