@@ -1125,7 +1125,7 @@ function getBestMoveFromWorker(board, hand, firstMove) {
     scrabbleWorker.postMessage({ type: 'findBestMove', data: { board, hand, firstMove } });
   });
 }
-
+// рабочая версия синта
 async function initSound() {
   if (soundReady) return;
   try {
