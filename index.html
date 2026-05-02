@@ -454,7 +454,55 @@
 </aside>
 <div id="app">
 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 12px;">
-  <h1 style="margin: 0;">🎲 Вы vs ИИ (Эрудит) ✨</h1>
+  <svg width="280" height="95" viewBox="0 0 560 190" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <linearGradient id="grad" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="#86efac"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    
+    <filter id="softglow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Основной фон -->
+  <rect width="560" height="190" rx="32" fill="#0f172a"/>
+
+  <!-- Тайл -->
+  <g>
+    <rect x="48" y="43" width="124" height="124" rx="24" fill="#111827"/>
+    
+    <!-- Сама фишка с мягкой анимацией -->
+    <rect id="tile" x="55" y="50" width="110" height="110" rx="20" fill="url(#grad)" filter="url(#softglow)">
+      <animate attributeName="y" values="50;46;50" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="height" values="110;116;110" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="x" values="55;53;55" dur="6s" repeatCount="indefinite"/>
+    </rect>
+
+    <!-- Буква -->
+    <text x="110" y="125" font-size="82" font-weight="900" fill="#0f172a" text-anchor="middle" font-family="system-ui" id="letter">Е</text>
+    
+    <!-- Очки -->
+    <text x="148" y="148" font-size="24" font-weight="700" fill="#052e16" text-anchor="middle">1</text>
+  </g>
+
+  <!-- Название -->
+  <text x="195" y="118" font-size="74" font-weight="800" fill="#e0f2e9" font-family="system-ui" letter-spacing="-2.5px" id="title">
+    РУДИТ
+  </text>
+
+  <!-- Мягкая подчёркивающая линия -->
+  <rect x="195" y="135" width="280" height="5" rx="2" fill="#86efac" opacity="0.55">
+    <animate attributeName="width" values="140;295;140" dur="5.5s" repeatCount="indefinite"/>
+    <animate attributeName="x" values="225;195;225" dur="5.5s" repeatCount="indefinite"/>
+  </rect>
+
+</svg>
   <div style="display: flex; gap: 12px;">
     <div id="p1" style="background: #27ae60; padding: 6px 18px; border-radius: 40px; color: white; font-weight: bold; font-size: 1.2rem;">🧑 0</div>
     <div id="p2" style="background: #2980b9; padding: 6px 18px; border-radius: 40px; color: white; font-weight: bold; font-size: 1.2rem;">🤖 0</div>
