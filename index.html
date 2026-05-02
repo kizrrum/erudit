@@ -1962,7 +1962,9 @@ async function generateAllPossibleMovesAsync(playerIdx, onProgress, abortSignal)
     popup.style.color = isError ? '#f3baba' : '#d4e0cf';
     popup.classList.add('show');
     if (hintTimer) clearTimeout(hintTimer);
-    hintTimer = setTimeout(() => popup.classList.remove('show'), 7800);
+    hintTimer = setTimeout(() => popup.classList.remove('show'), 3000);
+    // Добавляем подсказку в Журнал событий
+    addEventLog(text, isError);
   }
 
   async function requestHint() {
