@@ -1265,7 +1265,7 @@ async function initSound() {
     }
   }
 
-  // Загружаем список доступных MIDI-файлов
+  // Загружаем список доступных MIDI-файлов из midi-list.json
   async function loadMidiList() {
     try {
       let files = [];
@@ -1273,8 +1273,9 @@ async function initSound() {
         // Electron: используем IPC
         files = await window.electronAPI.getMidiList();
       } else {
-        // Веб: пробуем fetch
-        const response = await fetch('/midi-list');
+        // Веб: загружаем midi-list.json
+        const response = await fetch('midi-list.json');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         files = await response.json();
       }
       midiList = files;
