@@ -1274,7 +1274,7 @@ async function initSound() {
         files = await window.electronAPI.getMidiList();
       } else {
         // Веб: пробуем fetch
-        const response = await fetch('/midi-list');
+        const response = await fetch('/midi-list.json');
         files = await response.json();
       }
       midiList = files;
