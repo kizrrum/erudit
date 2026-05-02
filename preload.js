@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  readDictionary: () => ipcRenderer.invoke('read-dictionary')
+  readDictionary: () => ipcRenderer.invoke('read-dictionary'),
+  getMidiList: () => ipcRenderer.invoke('get-midi-list')
 });
