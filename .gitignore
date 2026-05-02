@@ -1,1 +1,13 @@
-Nothing should be ignored based on the provided file changes. The changes include only source/config files (JSON and HTML), which should not be added to .gitignore according to rule #6.
+!music/
+/*
+!README.md
+!Tone.js
+!index.html
+!main.js
+!server.js
+!logo.png
+!package.json
+!words.txt
+!preload.js
+!midi.js
+!soundfont-player.min.js
