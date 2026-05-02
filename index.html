@@ -533,7 +533,7 @@ window.onerror = function(msg, url, line, col, error) {
   <button class="pass" id="swapBtn">⏭️ Пропуск</button>
   <button class="check" id="endBtn">✅ Готово</button>
   <button class="hint-btn" id="hintBtn" title="Подсказка">💡</button>
-  <button class="music-toggle" id="playMidiBtn" title="Случайный MIDI"></button>
+  <button class="music-mode" id="midiBtn" title="Случайный MIDI трек">🎲 MIDI</button>
   <button id="newGameBtn" title="Перезапуск игры">🔄</button>
 </div>
 
@@ -739,8 +739,7 @@ autoResizeBoard();
   
   // Переменные для MIDI-плеера
   let midiPiano = null;
-  let midiList = [];
-  let audioCtx = null;
+  let midiFileList = [];
 
 
 // ==================== WEB WORKER ДЛЯ ИИ ====================
@@ -1257,64 +1256,45 @@ async function initSound() {
 
   // Инициализация MIDI-пианино
   async function initMidiPiano() {
-    if (midiPiano) return midiPiano;
-    
+    if (midiPiano) return;
     try {
-      audioCtx = Tone.context.rawContext;
-      if (audioCtx.state !== 'running') {
-        await audioCtx.resume();
-      }
-      
-      addEventLog('Загрузка инструмента...', false);
-      midiPiano = await Soundfont.instrument(audioCtx, 'acoustic_grand_piano');
-      
-      addEventLog('Загружаем список MIDI...', false);
-      const res = await fetch('/midi-list');
-      midiList = await res.json();
-      
-      if (midiList.length) {
-        addEventLog(`Готово. Доступно MIDI: ${midiList.length}`, false);
-      } else {
-        addEventLog('Нет MIDI файлов', true);
-      }
-      
-      return midiPiano;
-    } catch (e) {
+      await Tone.start();
+      const ctx = Tone.context.rawContext;
+      midiPiano = await Soundfont.instrument(ctx, 'acoustic_grand_piano');
+      const response = await fetch('midi-list.json');
+      if (!response.ok) throw new Error('midi-list.json not found');
+      midiFileList = await response.json();
+      addEventLog(`🎹 MIDI готов, файлов: ${midiFileList.length}`, false);
+    } catch(e) {
       console.error(e);
-      addEventLog('Ошибка инициализации MIDI', true);
-      return null;
+      addEventLog("Ошибка инициализации MIDI", true);
     }
   }
 
   // Проигрывание случайного MIDI
   async function playRandomMidi() {
-    await initMidiPiano();
-    
-    if (!midiPiano || !midiList.length) {
-      addEventLog('Нет доступных MIDI файлов', true);
+    if (!midiPiano) await initMidiPiano();
+    if (!midiPiano || midiFileList.length === 0) {
+      addEventLog("Нет MIDI-файлов", true);
       return;
     }
-    
-    const file = midiList[Math.floor(Math.random() * midiList.length)];
-    addEventLog('Загрузка: ' + file, false);
-    
+    const file = midiFileList[Math.floor(Math.random() * midiFileList.length)];
+    addEventLog(`🎵 Загружаем: ${file}`, false);
     try {
-      const midi = await Midi.fromUrl('music/' + file);
-      const now = audioCtx.currentTime;
-      
+      const midi = await Midi.fromUrl(`music/${file}`);
+      const now = Tone.now();
       midi.tracks.forEach(track => {
         track.notes.forEach(note => {
           midiPiano.play(note.name, now + note.time, {
             duration: note.duration,
-            gain: note.velocity
+            gain: note.velocity * 0.7
           });
         });
       });
-      
-      addEventLog('▶️ Играет: ' + file, false);
-    } catch (e) {
+      addEventLog(`▶️ Играет: ${file}`, false);
+    } catch(e) {
       console.error(e);
-      addEventLog('Ошибка воспроизведения MIDI', true);
+      addEventLog(`Ошибка воспроизведения ${file}`, true);
     }
   }
 
@@ -1374,8 +1354,10 @@ async function loadDictionary() {
       trie.insert(upperWord);
     }
     dictReady = true;
-	renderBoard();   // добавить
-	renderHand();    // добавить
+    renderBoard();
+    renderHand();
+    // Принудительная отрисовка для корректного отображения
+    document.getElementById('board').offsetHeight;
     statusDiv.innerHTML = `✅ Словарь загружен: ${dictionary.size} слов`;
     addEventLog(`Словарь загружен: ${dictionary.size} слов`, false);
     
@@ -2219,7 +2201,6 @@ function newGame() {
     game.selectedTile = null;
     drawTiles(0, 7);
     drawTiles(1, 7);
-    updateMusicButtons();
     renderBoard();
     renderHand();
     updateUI();
@@ -2230,7 +2211,7 @@ function newGame() {
 		document.getElementById('swapBtn').onclick = () => skipTurn();
 		document.getElementById('endBtn').onclick = () => endTurn();
 		document.getElementById('hintBtn').onclick = () => requestHint();
-		document.getElementById('playMidiBtn').onclick = () => playRandomMidi();
+		document.getElementById('midiBtn').onclick = () => playRandomMidi();
 		document.addEventListener('pointerdown', ensureAudioStarted, { once: true });
 		document.getElementById('newGameBtn').onclick = () => newGame();
 		initGame();
