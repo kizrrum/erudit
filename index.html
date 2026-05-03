@@ -2659,7 +2659,6 @@
   (function() {
     let db = null;
 
-    // ---------- ВАША ФУНКЦИЯ ОЧИСТКИ (без изменений) ----------
     function cleanDefinition(raw) {
       if (!raw) return '';
       let cleaned = raw.replace(/<[^>]*>/g, ' ');
@@ -2678,7 +2677,6 @@
       return cleaned;
     }
 
-    // ---------- ЗАГРУЗКА SQL.JS И БД ----------
     async function loadDatabase() {
       try {
         const SQL = await window.initSqlJs({
@@ -2698,7 +2696,6 @@
       }
     }
 
-    // ---------- ПОЛУЧЕНИЕ ОПРЕДЕЛЕНИЯ С ОЧИСТКОЙ ----------
     window.getDefinition = async function(word) {
       if (!db) return null;
       try {
@@ -2717,7 +2714,6 @@
       }
     };
 
-    // ---------- ПОКАЗ ОПРЕДЕЛЕНИЯ (попап + запись в журнал) ----------
     async function showDefinition(word) {
       const popup = document.getElementById('hint-popup');
       if (!popup) return;
@@ -2726,7 +2722,6 @@
       const definition = await window.getDefinition(word);
       if (definition) {
         popup.textContent = `📖 ${word}: ${definition}`;
-        // Добавляем в журнал событий
         if (typeof window.addEventLog === 'function') {
           window.addEventLog(`📖 ${word} — ${definition}`, false);
         }
@@ -2736,14 +2731,35 @@
       setTimeout(() => popup.classList.remove('show'), 5000);
     }
 
-    // ---------- ИЗВЛЕЧЕНИЕ СЛОВА ИЗ ЗАПИСИ ЖУРНАЛА ----------
-    function extractWordFromLogEntry(entryElement) {
-      const text = entryElement.innerText;
-      const match = text.match(/[А-ЯЁа-яё]{2,20}/);
-      return match ? match[0].toUpperCase() : null;
-    }
+    // ---------- ИСПРАВЛЕННАЯ ФУНКЦИЯ ИЗВЛЕЧЕНИЯ (берёт последнее слово) ----------
+	function extractWordFromLogEntry(entryElement) {
+	  const text = entryElement.innerText;
+	  
+	  // 1. Пробуем найти слово после "слова:"
+	  const afterColon = text.match(/слова:\s*([А-ЯЁа-яё]{2,20})/i);
+	  if (afterColon) return afterColon[1].toUpperCase();
+	  
+	  // 2. Ищем все русские слова
+	  const words = text.match(/[А-ЯЁа-яё]{2,20}/g);
+	  if (!words || words.length === 0) return null;
+	  
+	  // 3. Стоп-слова, которые не должны быть определениями
+	  const stopWords = new Set([
+		'ОЧКОВ', 'ДОБАВИЛ', 'СЛОВА', 'ИГРОК', 'AI', 'НАБРАЛ', 
+		'ПРОПУСТИЛ', 'ЗАМЕНИЛ', 'ФИШЕК', 'БУКВА', 'ПОСТАВЛЕНА',
+		'НОВАЯ', 'ИГРА', 'НАЧАТА', 'ХОД', 'ПОДСКАЗКА', 'ТЕКУЩИЙ'
+	  ]);
+	  
+	  // Идём с конца и берём первое слово, не входящее в стоп-список
+	  for (let i = words.length - 1; i >= 0; i--) {
+		const w = words[i].toUpperCase();
+		if (!stopWords.has(w)) return w;
+	  }
+	  
+	  // Если все слова стоповые, возвращаем последнее (хотя бы что-то)
+	  return words[words.length - 1].toUpperCase();
+	}
 
-    // ---------- НАВЕШИВАЕМ КЛИКИ ----------
     function setupJournalClick() {
       const log = document.getElementById('event-log');
       if (!log) {
@@ -2762,7 +2778,6 @@
       console.log('✅ Слушатель кликов на журнале установлен');
     }
 
-    // ---------- ВИЗУАЛЬНЫЕ СТИЛИ ----------
     const style = document.createElement('style');
     style.textContent = `
       #event-log li {
@@ -2775,7 +2790,6 @@
     `;
     document.head.appendChild(style);
 
-    // ---------- ЗАГРУЗКА SQL.JS С CDN ----------
     const script = document.createElement('script');
     script.src = 'https://sql.js.org/dist/sql-wasm.js';
     script.onload = () => {
@@ -2788,7 +2802,6 @@
     setupJournalClick();
   })();
 </script>
-
 
 
 	<!-- Анимационный слой -->
