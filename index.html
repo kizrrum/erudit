@@ -534,7 +534,7 @@ window.onerror = function(msg, url, line, col, error) {
   <button class="check" id="endBtn">✅ Готово</button>
   <button class="hint-btn" id="hintBtn" title="Подсказка">💡</button>
   <button class="music-toggle" id="musicBtn" title="Музыка"></button>
-  <button class="music-mode" id="musicModeBtn" title="Случайный трек"></button>
+  <button class="music-mode" id="musicModeBtn" title="Следующий трек"></button>
   <button id="newGameBtn" title="Перезапуск игры">🔄</button>
 </div>
 
@@ -738,7 +738,7 @@ autoResizeBoard();
   let ambientPan;
   let hintTimer = null;
   let musicEnabled = false;
-  let musicMode = 'ambient';
+  let musicMode = 'midi';
 
 
 // ==================== WEB WORKER ДЛЯ ИИ ====================
@@ -1141,8 +1141,9 @@ async function initSound() {
     // 🎹 Загружаем пианино для MIDI
     window.piano = await Soundfont.instrument(window.ac, 'acoustic_grand_piano');
 
-    // Полифонический синтезатор
+    // Полифонический синтезатор (минимальная полифония)
     synth = new Tone.PolySynth(Tone.FMSynth, {
+      maxPolyphony: 1,
       harmonicity: 2.5,
       modulationIndex: 8,
       envelope: {
@@ -1164,25 +1165,25 @@ async function initSound() {
       oscillator: { type: "sine" }
     });
 
-    // Безопасный ревербератор (JCReverb)
+    // Безопасный ревербератор (JCReverb) - отключен (wet: 0)
     synthReverb = new Tone.JCReverb({
       roomSize: 0.7,
-      wet: 0.35
+      wet: 0
     }).toDestination();
 
-    // Хорус
+    // Хорус - отключен (wet: 0)
     synthChorus = new Tone.Chorus({
       frequency: 1.2,
       delayTime: 3.2,
       depth: 0.7,
-      wet: 0.35
+      wet: 0
     }).connect(synthReverb);
 
-    // Дилей
+    // Дилей - отключен (wet: 0)
     synthDelay = new Tone.FeedbackDelay({
       delayTime: 0.32,
       feedback: 0.28,
-      wet: 0.2
+      wet: 0
     }).connect(synthChorus);
 
     // Фильтр с LFO и авто‑панорама
@@ -1264,16 +1265,9 @@ async function initSound() {
   }
 
   function startBackgroundMusic() {
-  if ((!piano && !synth) || !soundReady || typeof Tone === 'undefined') return;
-
-  stopBackgroundMusic();
-
-  Tone.Transport.bpm.value = (musicMode === 'classical') ? 108 : 52;
-  const musicVoice = synth;
-  if (!musicVoice) return;
-
-    // ================= КЛАССИКА =================
-    if (musicMode === 'classical') {
+    // Фоновая музыка больше не используется - играем только MIDI треки
+    return;
+  }
   const classicalThemes = [
     {
       title: "Für Elise (Бетховен) - точная тема",
@@ -1457,11 +1451,23 @@ async function initSound() {
     await ensureAudioStarted();
     if (!soundReady) await initSound();
     musicEnabled = !musicEnabled;
-    if (musicEnabled) startBackgroundMusic();
-    else stopBackgroundMusic();
+    
+    // Если выключаем музыку - останавливаем и MIDI треки
+    if (!musicEnabled) {
+      stopCurrentMidi();
+      stopBackgroundMusic();
+    } else {
+      // Если включаем музыку - запускаем случайный трек
+      playRandomMidi();
+    }
+    
     updateMusicButtons();
-    addEventLog(musicEnabled ? `Музыка включена (${musicMode === 'classical' ? '🎼 Классические произведения' : '🌿 Атмосферный эмбиент'})` : "Музыка выключена", false);
+    addEventLog(musicEnabled ? `Музыка включена (🎵 MIDI треки)` : "Музыка выключена", false);
   }
+
+  // Переменные для отслеживания текущего MIDI-трека
+  let currentMidiNotes = [];
+  let midiTimeoutId = null;
 
   async function playRandomMidi() {
     await ensureAudioStarted();
@@ -1472,6 +1478,8 @@ async function initSound() {
       return;
     }
     
+    // 🔇 Останавливаем текущий MIDI-трек если играет
+    stopCurrentMidi();
     // 🔇 Останавливаем фоновую музыку (эмбиент или классику) перед запуском MIDI-трека
     stopBackgroundMusic();
     
@@ -1516,18 +1524,22 @@ async function initSound() {
       const midi = await Midi.fromUrl('music/' + file);
       const now = window.ac.currentTime;
       
+      // Очищаем предыдущие ноты
+      currentMidiNotes = [];
+      
       midi.tracks.forEach(track => {
         track.notes.forEach(note => {
           window.piano.play(note.name, now + note.time, {
             duration: note.duration,
             gain: note.velocity
           });
+          currentMidiNotes.push(note);
         });
       });
       
       addEventLog('▶️ Играет: ' + file, false);
       
-      // Вычисляем длительность трека для возврата кнопки в исходное состояние
+      // Вычисляем длительность трека
       let maxDuration = 0;
       midi.tracks.forEach(track => {
         track.notes.forEach(note => {
@@ -1536,17 +1548,32 @@ async function initSound() {
         });
       });
       
-      // После окончания трека можно автоматически включить эмбиент (если музыка включена)
-      setTimeout(() => {
-        if (musicEnabled && Tone.Transport.state !== 'started') {
-          startBackgroundMusic();
-          addEventLog('🌿 Эмбиент возобновлён', false);
+      // После окончания трека автоматически играем следующий случайный трек
+      if (midiTimeoutId) clearTimeout(midiTimeoutId);
+      midiTimeoutId = setTimeout(() => {
+        currentMidiNotes = [];
+        // Если музыка включена - играем следующий случайный трек
+        if (musicEnabled) {
+          playRandomMidi();
+        } else {
+          addEventLog('🎵 Трек завершён', false);
         }
       }, maxDuration * 1000 + 500);
       
     } catch (e) {
       addEventLog('Ошибка воспроизведения: ' + file, true);
       console.error(e);
+    }
+  }
+  
+  function stopCurrentMidi() {
+    if (midiTimeoutId) {
+      clearTimeout(midiTimeoutId);
+      midiTimeoutId = null;
+    }
+    currentMidiNotes = [];
+    if (window.piano && window.piano.releaseAll) {
+      window.piano.releaseAll();
     }
   }
 
