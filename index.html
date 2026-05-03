@@ -2342,7 +2342,6 @@
 		await initSound();
 		// Инициализация AnimationManager
 		animManager = new AnimationManager();
-		if (!dictReady) return;
 		const logList = document.getElementById('event-log');
 		if (logList) logList.innerHTML = '';
 		addEventLog("Новая игра начата", false);
