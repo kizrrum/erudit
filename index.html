@@ -2655,6 +2655,140 @@
 
 
 
+<script>
+  (function() {
+    let db = null;
+
+    // ---------- ВАША ФУНКЦИЯ ОЧИСТКИ (без изменений) ----------
+    function cleanDefinition(raw) {
+      if (!raw) return '';
+      let cleaned = raw.replace(/<[^>]*>/g, ' ');
+      cleaned = cleaned.replace(/&nbsp;/g, ' ')
+                       .replace(/&lt;/g, '<')
+                       .replace(/&gt;/g, '>')
+                       .replace(/&amp;/g, '&')
+                       .replace(/&quot;/g, '"')
+                       .replace(/&#39;/g, "'");
+      cleaned = cleaned.replace(/^\s*[\d]+\.\s*/gm, '')
+                       .replace(/^\s*[•\-]\s*/gm, '');
+      cleaned = cleaned.replace(/\s*Происходит от.*?(?=\.|$)/gi, '')
+                       .replace(/\s*Использованы данные словаря.*?$/gi, '');
+      cleaned = cleaned.replace(/\s+/g, ' ').trim();
+      if (cleaned.length > 600) cleaned = cleaned.slice(0, 600) + '…';
+      return cleaned;
+    }
+
+    // ---------- ЗАГРУЗКА SQL.JS И БД ----------
+    async function loadDatabase() {
+      try {
+        const SQL = await window.initSqlJs({
+          locateFile: () => 'https://sql.js.org/dist/sql-wasm.wasm'
+        });
+        console.log('✅ SQL.js загружен');
+        const response = await fetch('dictionary.sqlite');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const arrayBuffer = await response.arrayBuffer();
+        db = new SQL.Database(new Uint8Array(arrayBuffer));
+        const count = db.exec("SELECT COUNT(*) FROM definitions")[0].values[0][0];
+        console.log(`✅ БД загружена, записей: ${count}`);
+        const statusDiv = document.getElementById('dict-status');
+        if (statusDiv) statusDiv.innerText = '✅ Определения готовы';
+      } catch (err) {
+        console.error('❌ Ошибка загрузки определений:', err);
+      }
+    }
+
+    // ---------- ПОЛУЧЕНИЕ ОПРЕДЕЛЕНИЯ С ОЧИСТКОЙ ----------
+    window.getDefinition = async function(word) {
+      if (!db) return null;
+      try {
+        const stmt = db.prepare("SELECT definition FROM definitions WHERE word = ?");
+        stmt.bind([word.toUpperCase()]);
+        if (stmt.step()) {
+          let def = stmt.get()[0];
+          stmt.free();
+          return cleanDefinition(def);
+        }
+        stmt.free();
+        return null;
+      } catch(e) {
+        console.error(e);
+        return null;
+      }
+    };
+
+    // ---------- ПОКАЗ ОПРЕДЕЛЕНИЯ (попап + запись в журнал) ----------
+    async function showDefinition(word) {
+      const popup = document.getElementById('hint-popup');
+      if (!popup) return;
+      popup.textContent = `📖 Ищем "${word}"...`;
+      popup.classList.add('show');
+      const definition = await window.getDefinition(word);
+      if (definition) {
+        popup.textContent = `📖 ${word}: ${definition}`;
+        // Добавляем в журнал событий
+        if (typeof window.addEventLog === 'function') {
+          window.addEventLog(`📖 ${word} — ${definition}`, false);
+        }
+      } else {
+        popup.textContent = `❌ Определение для "${word}" не найдено.`;
+      }
+      setTimeout(() => popup.classList.remove('show'), 5000);
+    }
+
+    // ---------- ИЗВЛЕЧЕНИЕ СЛОВА ИЗ ЗАПИСИ ЖУРНАЛА ----------
+    function extractWordFromLogEntry(entryElement) {
+      const text = entryElement.innerText;
+      const match = text.match(/[А-ЯЁа-яё]{2,20}/);
+      return match ? match[0].toUpperCase() : null;
+    }
+
+    // ---------- НАВЕШИВАЕМ КЛИКИ ----------
+    function setupJournalClick() {
+      const log = document.getElementById('event-log');
+      if (!log) {
+        setTimeout(setupJournalClick, 200);
+        return;
+      }
+      log.addEventListener('click', (e) => {
+        const li = e.target.closest('.event-item');
+        if (!li) return;
+        const word = extractWordFromLogEntry(li);
+        if (word) {
+          console.log(`🔍 Клик по слову: ${word}`);
+          showDefinition(word);
+        }
+      });
+      console.log('✅ Слушатель кликов на журнале установлен');
+    }
+
+    // ---------- ВИЗУАЛЬНЫЕ СТИЛИ ----------
+    const style = document.createElement('style');
+    style.textContent = `
+      #event-log li {
+        cursor: pointer;
+        transition: background 0.1s;
+      }
+      #event-log li:hover {
+        background-color: rgba(76, 175, 80, 0.15);
+      }
+    `;
+    document.head.appendChild(style);
+
+    // ---------- ЗАГРУЗКА SQL.JS С CDN ----------
+    const script = document.createElement('script');
+    script.src = 'https://sql.js.org/dist/sql-wasm.js';
+    script.onload = () => {
+      console.log('✅ Скрипт sql.js загружен');
+      loadDatabase().catch(console.error);
+    };
+    script.onerror = () => console.error('❌ Не удалось загрузить sql.js');
+    document.head.appendChild(script);
+
+    setupJournalClick();
+  })();
+</script>
+
 
 
 	<!-- Анимационный слой -->
