@@ -739,6 +739,8 @@ autoResizeBoard();
   let hintTimer = null;
   let musicEnabled = false;
   let musicMode = 'midi';
+  let currentMidiNotes = [];
+  let midiTimeoutId = null;
 
 
 // ==================== WEB WORKER ДЛЯ ИИ ====================
@@ -1267,6 +1269,31 @@ async function initSound() {
   function startBackgroundMusic() {
     // Фоновая музыка больше не используется - играем только MIDI треки
     return;
+  }
+
+  function toggleMusic() {
+    musicEnabled = !musicEnabled;
+    if (musicEnabled) {
+      addEventLog('🎵 Музыка включена', false);
+      playRandomMidi();
+    } else {
+      addEventLog('🔇 Музыка выключена', false);
+      stopCurrentMidi();
+    }
+    updateMusicButtons();
+  }
+
+  function updateMusicButtons() {
+    const musicBtn = document.getElementById('musicBtn');
+    if (musicBtn) {
+      musicBtn.textContent = musicEnabled ? '🔊' : '🔇';
+      musicBtn.title = musicEnabled ? 'Выключить музыку' : 'Включить музыку';
+    }
+    const musicModeBtn = document.getElementById('musicModeBtn');
+    if (musicModeBtn) {
+      musicModeBtn.textContent = '⏭️';
+      musicModeBtn.title = 'Следующий трек';
+    }
   }
 
   async function playRandomMidi() {
