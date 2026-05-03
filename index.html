@@ -533,8 +533,8 @@ window.onerror = function(msg, url, line, col, error) {
   <button class="pass" id="swapBtn">⏭️ Пропуск</button>
   <button class="check" id="endBtn">✅ Готово</button>
   <button class="hint-btn" id="hintBtn" title="Подсказка">💡</button>
-  <button class="music-toggle" id="musicBtn" title="Музыка"></button>
-  <button class="music-mode" id="musicModeBtn" title="Следующий трек"></button>
+  <button class="music-toggle" id="musicBtn" title="Музыка" disabled>🔇</button>
+  <button class="music-mode" id="musicModeBtn" title="Следующий трек" disabled>⏭️</button>
   <button id="newGameBtn" title="Перезапуск игры">🔄</button>
 </div>
 
@@ -1271,7 +1271,13 @@ async function initSound() {
     return;
   }
 
-  function toggleMusic() {
+  async function toggleMusic() {
+    // Защита от клика до полной инициализации игры
+    if (!window.gameInitialized || !window.ac || !window.piano) {
+      addEventLog('⏳ Игра ещё не готова, подождите загрузки...', true);
+      return;
+    }
+    
     musicEnabled = !musicEnabled;
     if (musicEnabled) {
       addEventLog('🎵 Музыка включена', false);
@@ -1288,20 +1294,24 @@ async function initSound() {
     if (musicBtn) {
       musicBtn.textContent = musicEnabled ? '🔊' : '🔇';
       musicBtn.title = musicEnabled ? 'Выключить музыку' : 'Включить музыку';
+      // Разблокируем кнопки только после полной инициализации
+      musicBtn.disabled = !window.gameInitialized || !window.ac || !window.piano;
     }
     const musicModeBtn = document.getElementById('musicModeBtn');
     if (musicModeBtn) {
       musicModeBtn.textContent = '⏭️';
       musicModeBtn.title = 'Следующий трек';
+      // Разблокируем кнопки только после полной инициализации
+      musicModeBtn.disabled = !window.gameInitialized || !window.ac || !window.piano;
     }
   }
 
 async function playRandomMidi() {
   if (!musicEnabled) return;
-  await ensureAudioStarted();
-  if (!soundReady) await initSound();
-  if (!window.ac || !window.piano) {
-    addEventLog('🎹 Пианино не готово, MIDI недоступен', true);
+  
+  // Защита от клика до полной инициализации игры
+  if (!window.gameInitialized || !window.ac || !window.piano) {
+    addEventLog('⏳ Игра ещё не готова, подождите загрузки...', true);
     return;
   }
 
@@ -2320,6 +2330,9 @@ function newGame() {
     renderHand();
     updateUI();
     if (game.currentPlayer === 1) setTimeout(() => aiMakeMove(), 300);
+    
+    // Устанавливаем флаг, что инициализация завершена
+    window.gameInitialized = true;
   }
 
 	document.addEventListener('DOMContentLoaded', () => {
@@ -2330,6 +2343,7 @@ function newGame() {
 		document.getElementById('musicModeBtn').onclick = () => playRandomMidi();
 		document.addEventListener('pointerdown', ensureAudioStarted, { once: true });
 		document.getElementById('newGameBtn').onclick = () => newGame();
+		updateMusicButtons(); // Инициализация кнопок музыки при загрузке
 		initGame();
 	});
 	</script>
