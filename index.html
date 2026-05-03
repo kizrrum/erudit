@@ -446,8 +446,9 @@
   </style>
   <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>-->
   <script src="Tone.js"></script>
+  <script src="midi.js"></script>
+  <script src="soundfont-player.min.js"></script>
 </head>
-<body>
 <body>
 <script>
 // Аварийный перехват: вместо краша покажем ошибку на экране
@@ -533,7 +534,7 @@ window.onerror = function(msg, url, line, col, error) {
   <button class="check" id="endBtn">✅ Готово</button>
   <button class="hint-btn" id="hintBtn" title="Подсказка">💡</button>
   <button class="music-toggle" id="musicBtn" title="Музыка"></button>
-  <button class="music-mode" id="musicModeBtn" title="Режим музыки"></button>
+  <button class="music-mode" id="musicModeBtn" title="Случайный трек"></button>
   <button id="newGameBtn" title="Перезапуск игры">🔄</button>
 </div>
 
@@ -1129,6 +1130,17 @@ function getBestMoveFromWorker(board, hand, firstMove) {
 async function initSound() {
   if (soundReady) return;
   try {
+    await Tone.start();
+
+    // 🔊 Инициализация AudioContext для MIDI
+    window.ac = Tone.context.rawContext;
+    if (window.ac.state !== 'running') {
+      await window.ac.resume();
+    }
+
+    // 🎹 Загружаем пианино для MIDI
+    window.piano = await Soundfont.instrument(window.ac, 'acoustic_grand_piano');
+
     // Полифонический синтезатор
     synth = new Tone.PolySynth(Tone.FMSynth, {
       harmonicity: 2.5,
@@ -1204,7 +1216,6 @@ async function initSound() {
     synth.volume.value = -1;
     ambientLFO.start();
 
-    // Пианино отключено, чтобы не было обращений к внешним семплам
     piano = null;
     pianoReverb = null;
 
@@ -1439,7 +1450,7 @@ async function initSound() {
     const modeBtn = document.getElementById('musicModeBtn');
     if (!musicBtn || !modeBtn) return;
     musicBtn.textContent = musicEnabled ? '🔊' : '🔇';
-    modeBtn.textContent = musicMode === 'classical' ? '🎼' : '🌿';
+    modeBtn.textContent = '🎲';
   }
 
   async function toggleMusic() {
@@ -1452,13 +1463,61 @@ async function initSound() {
     addEventLog(musicEnabled ? `Музыка включена (${musicMode === 'classical' ? '🎼 Классические произведения' : '🌿 Атмосферный эмбиент'})` : "Музыка выключена", false);
   }
 
-  async function cycleMusicMode() {
+  async function playRandomMidi() {
     await ensureAudioStarted();
     if (!soundReady) await initSound();
-    musicMode = (musicMode === 'ambient') ? 'classical' : 'ambient';
-    if (musicEnabled) startBackgroundMusic();
-    updateMusicButtons();
-    addEventLog(`Режим музыки: ${musicMode === 'classical' ? '🎼 Классические произведения' : '🌿 Атмосферный эмбиент'}`, false);
+    
+    if (!window.ac || !window.piano) {
+      addEventLog('Сначала включите музыку кнопкой 🔊', false);
+      return;
+    }
+    
+    if (!window.midiList || window.midiList.length === 0) {
+      addEventLog('Загрузка списка MIDI...', false);
+      try {
+        let files;
+        // Пробуем через Electron API, если доступно
+        if (window.electronAPI && window.electronAPI.getMidiList) {
+          files = await window.electronAPI.getMidiList();
+        } else {
+          // Иначе через HTTP (для браузера)
+          const res = await fetch('/midi-list');
+          files = await res.json();
+        }
+        window.midiList = files;
+      } catch (e) {
+        addEventLog('Ошибка загрузки списка MIDI', true);
+        console.error(e);
+        return;
+      }
+    }
+    
+    if (window.midiList.length === 0) {
+      addEventLog('Нет MIDI файлов в папке music/', true);
+      return;
+    }
+    
+    const file = window.midiList[Math.floor(Math.random() * window.midiList.length)];
+    addEventLog('▶️ Загрузка: ' + file, false);
+    
+    try {
+      const midi = await Midi.fromUrl('music/' + file);
+      const now = window.ac.currentTime;
+      
+      midi.tracks.forEach(track => {
+        track.notes.forEach(note => {
+          window.piano.play(note.name, now + note.time, {
+            duration: note.duration,
+            gain: note.velocity
+          });
+        });
+      });
+      
+      addEventLog('▶️ Играет: ' + file, false);
+    } catch (e) {
+      addEventLog('Ошибка воспроизведения: ' + file, true);
+      console.error(e);
+    }
   }
 
   function playTileSound(letter) {
@@ -2375,7 +2434,7 @@ function newGame() {
 		document.getElementById('endBtn').onclick = () => endTurn();
 		document.getElementById('hintBtn').onclick = () => requestHint();
 		document.getElementById('musicBtn').onclick = () => toggleMusic();
-		document.getElementById('musicModeBtn').onclick = () => cycleMusicMode();
+		document.getElementById('musicModeBtn').onclick = () => playRandomMidi();
 		document.addEventListener('pointerdown', ensureAudioStarted, { once: true });
 		document.getElementById('newGameBtn').onclick = () => newGame();
 		initGame();
