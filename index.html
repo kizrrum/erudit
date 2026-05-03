@@ -742,7 +742,7 @@ autoResizeBoard();
   let currentMidiNotes = [];
   let midiTimeoutId = null;
 
-
+  let currentMidiPlaying = false;
 // ==================== WEB WORKER ДЛЯ ИИ ====================
 let scrabbleWorker = null;
 let workerReadyPromise = null;
@@ -1296,113 +1296,121 @@ async function initSound() {
     }
   }
 
-  async function playRandomMidi() {
-    await ensureAudioStarted();
-    if (!soundReady) await initSound();
-    
-    if (!window.ac || !window.piano) {
-      addEventLog('Сначала включите музыку кнопкой 🔊', false);
+async function playRandomMidi() {
+  if (!musicEnabled) return;
+  await ensureAudioStarted();
+  if (!soundReady) await initSound();
+  if (!window.ac || !window.piano) {
+    addEventLog('🎹 Пианино не готово, MIDI недоступен', true);
+    return;
+  }
+
+  // Остановить текущий MIDI, если играет
+  if (midiTimeoutId) {
+    stopCurrentMidi();
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  // Загружаем список MIDI-файлов
+  if (!window.midiList || window.midiList.length === 0) {
+    addEventLog('Загрузка списка MIDI...', false);
+    try {
+      let files;
+      if (window.electronAPI && window.electronAPI.getMidiList) {
+        files = await window.electronAPI.getMidiList();
+      } else {
+        try {
+          const res = await fetch('/midi-list');
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          files = await res.json();
+        } catch (httpErr) {
+          const res = await fetch('midi-list.json');
+          if (!res.ok) throw new Error('Нет midi-list.json');
+          files = await res.json();
+        }
+      }
+      window.midiList = files;
+    } catch (e) {
+      addEventLog('Ошибка загрузки списка MIDI', true);
+      console.error(e);
       return;
     }
-    
-    // 🔇 Останавливаем текущий MIDI-трек если играет
-    stopCurrentMidi();
-    // 🔇 Останавливаем фоновую музыку (эмбиент или классику) перед запуском MIDI-трека
-    stopBackgroundMusic();
-    
-    if (!window.midiList || window.midiList.length === 0) {
-      addEventLog('Загрузка списка MIDI...', false);
-      try {
-        let files;
-        // 1. Пробуем через Electron API, если доступно
-        if (window.electronAPI && window.electronAPI.getMidiList) {
-          files = await window.electronAPI.getMidiList();
-        } else {
-          // 2. Пробуем через HTTP endpoint /midi-list
-          try {
-            const res = await fetch('/midi-list');
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            files = await res.json();
-          } catch (httpErr) {
-            // 3. Резервный вариант: загружаем готовый midi-list.json
-            console.log('Endpoint /midi-list недоступен, используем midi-list.json');
-            const res = await fetch('midi-list.json');
-            if (!res.ok) throw new Error('Нет midi-list.json');
-            files = await res.json();
+  }
+
+  if (window.midiList.length === 0) {
+    addEventLog('Нет MIDI файлов в папке music/', true);
+    return;
+  }
+
+  const file = window.midiList[Math.floor(Math.random() * window.midiList.length)];
+  addEventLog('▶️ Загрузка: ' + file, false);
+
+  try {
+    const midi = await Midi.fromUrl('music/' + file);
+    let totalNotes = 0;
+    midi.tracks.forEach(t => totalNotes += t.notes.length);
+    if (totalNotes === 0) {
+      addEventLog(`⚠️ Файл ${file} не содержит нот`, true);
+      if (musicEnabled) setTimeout(() => playRandomMidi(), 100);
+      return;
+    }
+
+    let maxEndTime = 0;
+    midi.tracks.forEach(track => {
+      track.notes.forEach(note => {
+        const end = note.time + note.duration;
+        if (end > maxEndTime) maxEndTime = end;
+      });
+    });
+    if (maxEndTime <= 0.5) maxEndTime = 30;
+
+    // Сброс транспорта
+    Tone.Transport.cancel();
+    Tone.Transport.stop();
+
+    const now = Tone.now();
+    for (const track of midi.tracks) {
+      for (const note of track.notes) {
+        Tone.Transport.schedule((time) => {
+          if (window.piano && window.piano.play) {
+            window.piano.play(note.name, time, { duration: note.duration, gain: note.velocity });
           }
-        }
-        window.midiList = files;
-      } catch (e) {
-        addEventLog('Ошибка загрузки списка MIDI', true);
-        console.error(e);
-        return;
+        }, now + note.time);
       }
     }
-    
-    if (window.midiList.length === 0) {
-      addEventLog('Нет MIDI файлов в папке music/', true);
-      return;
-    }
-    
-    const file = window.midiList[Math.floor(Math.random() * window.midiList.length)];
-    addEventLog('▶️ Загрузка: ' + file, false);
-    
-    try {
-      const midi = await Midi.fromUrl('music/' + file);
-      const now = window.ac.currentTime;
-      
-      // Очищаем предыдущие ноты
-      currentMidiNotes = [];
-      
-      midi.tracks.forEach(track => {
-        track.notes.forEach(note => {
-          window.piano.play(note.name, now + note.time, {
-            duration: note.duration,
-            gain: note.velocity
-          });
-          currentMidiNotes.push(note);
-        });
-      });
-      
-      addEventLog('▶️ Играет: ' + file, false);
-      
-      // Вычисляем длительность трека
-      let maxDuration = 0;
-      midi.tracks.forEach(track => {
-        track.notes.forEach(note => {
-          const noteEnd = note.time + note.duration;
-          if (noteEnd > maxDuration) maxDuration = noteEnd;
-        });
-      });
-      
-      // После окончания трека автоматически играем следующий случайный трек
-      if (midiTimeoutId) clearTimeout(midiTimeoutId);
-      midiTimeoutId = setTimeout(() => {
-        currentMidiNotes = [];
-        // Если музыка включена - играем следующий случайный трек
-        if (musicEnabled) {
-          playRandomMidi();
-        } else {
-          addEventLog('🎵 Трек завершён', false);
-        }
-      }, maxDuration * 1000 + 500);
-      
-    } catch (e) {
-      addEventLog('Ошибка воспроизведения: ' + file, true);
-      console.error(e);
-    }
+
+    Tone.Transport.start();
+
+    if (midiTimeoutId) clearTimeout(midiTimeoutId);
+    midiTimeoutId = setTimeout(() => {
+      stopCurrentMidi();
+      if (musicEnabled) setTimeout(() => playRandomMidi(), 50);
+    }, maxEndTime * 1000 + 200);
+
+    addEventLog(`🎵 Играет: ${file} (${maxEndTime.toFixed(1)} сек)`, false);
+  } catch (e) {
+    addEventLog(`Ошибка MIDI: ${file} - ${e.message}`, true);
+    console.error(e);
+    if (musicEnabled) setTimeout(() => playRandomMidi(), 1000);
   }
+}
+         
   
-  function stopCurrentMidi() {
-    if (midiTimeoutId) {
-      clearTimeout(midiTimeoutId);
-      midiTimeoutId = null;
-    }
-    currentMidiNotes = [];
-    if (window.piano && window.piano.releaseAll) {
-      window.piano.releaseAll();
-    }
+function stopCurrentMidi() {
+  if (midiTimeoutId) {
+    clearTimeout(midiTimeoutId);
+    midiTimeoutId = null;
   }
+  currentMidiNotes = [];
+  if (window.piano && window.piano.releaseAll) {
+    window.piano.releaseAll();
+  }
+  if (Tone && Tone.Transport) {
+    Tone.Transport.cancel(0);
+    Tone.Transport.stop();
+  }
+  currentMidiPlaying = false;
+}
 
   function playTileSound(letter) {
     if (!synth || !soundReady) return;
