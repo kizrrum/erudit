@@ -1472,6 +1472,9 @@ async function initSound() {
       return;
     }
     
+    // 🔇 Останавливаем фоновую музыку (эмбиент или классику) перед запуском MIDI-трека
+    stopBackgroundMusic();
+    
     if (!window.midiList || window.midiList.length === 0) {
       addEventLog('Загрузка списка MIDI...', false);
       try {
@@ -1523,6 +1526,24 @@ async function initSound() {
       });
       
       addEventLog('▶️ Играет: ' + file, false);
+      
+      // Вычисляем длительность трека для возврата кнопки в исходное состояние
+      let maxDuration = 0;
+      midi.tracks.forEach(track => {
+        track.notes.forEach(note => {
+          const noteEnd = note.time + note.duration;
+          if (noteEnd > maxDuration) maxDuration = noteEnd;
+        });
+      });
+      
+      // После окончания трека можно автоматически включить эмбиент (если музыка включена)
+      setTimeout(() => {
+        if (musicEnabled && Tone.Transport.state !== 'started') {
+          startBackgroundMusic();
+          addEventLog('🌿 Эмбиент возобновлён', false);
+        }
+      }, maxDuration * 1000 + 500);
+      
     } catch (e) {
       addEventLog('Ошибка воспроизведения: ' + file, true);
       console.error(e);
