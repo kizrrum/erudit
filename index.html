@@ -1476,13 +1476,22 @@ async function initSound() {
       addEventLog('Загрузка списка MIDI...', false);
       try {
         let files;
-        // Пробуем через Electron API, если доступно
+        // 1. Пробуем через Electron API, если доступно
         if (window.electronAPI && window.electronAPI.getMidiList) {
           files = await window.electronAPI.getMidiList();
         } else {
-          // Иначе через HTTP (для браузера)
-          const res = await fetch('/midi-list');
-          files = await res.json();
+          // 2. Пробуем через HTTP endpoint /midi-list
+          try {
+            const res = await fetch('/midi-list');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            files = await res.json();
+          } catch (httpErr) {
+            // 3. Резервный вариант: загружаем готовый midi-list.json
+            console.log('Endpoint /midi-list недоступен, используем midi-list.json');
+            const res = await fetch('midi-list.json');
+            if (!res.ok) throw new Error('Нет midi-list.json');
+            files = await res.json();
+          }
         }
         window.midiList = files;
       } catch (e) {
@@ -2235,6 +2244,7 @@ async function aiMakeMove() {
     renderBoard();
     renderHand();
     showMsg("🎲 Ваш ход", false);
+    playSuccessSound(); // Звук после хода ИИ
     setTimeout(() => clearFreshFlags(), 400);
     
   } catch (e) {
