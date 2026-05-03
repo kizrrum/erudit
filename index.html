@@ -1511,8 +1511,8 @@
 		  trie.insert(upperWord);
 		}
 		dictReady = true;
-		renderBoard();   // добавить
-		renderHand();    // добавить
+		//renderBoard();   // добавить
+		//renderHand();    // добавить
 		statusDiv.innerHTML = `✅ Словарь загружен: ${dictionary.size} слов`;
 		addEventLog(`Словарь загружен: ${dictionary.size} слов`, false);
 		
@@ -2237,23 +2237,39 @@
 		}
 	  }
 
-	  function renderHand() {
+	function renderHand() {
 		const handDiv = document.getElementById('hand');
-		handDiv.innerHTML = '';
-		const hand = game.hand[game.currentPlayer];
-		for (let i = 0; i < hand.length; i++) {
-		  let t = hand[i];
-		  const tileDiv = document.createElement('div');
-		  tileDiv.className = 'tile player'; // в руке всегда стиль игрока (без разницы)
-		  if (t.star) tileDiv.classList.add('star');
-		  if (game.selectedTile && game.selectedTile.playerIdx === game.currentPlayer && game.selectedTile.handIndex === i) tileDiv.classList.add('sel');
-		  let display = t.star ? (t.replaces || '*') : t.letter;
-		  tileDiv.innerHTML = `${display}<small>${t.points}</small>`;
-		  tileDiv.onclick = (function(idx) { return function() { selectTile(idx); }; })(i);
-		  handDiv.appendChild(tileDiv);
-		}
-	  }
+		if (!handDiv) return;
 
+		if (!game || !game.hand || !Array.isArray(game.hand)) {
+			handDiv.innerHTML = '';
+			return;
+		}
+
+		const currentPlayer = game.currentPlayer;
+		const hand = game.hand[currentPlayer];
+
+		// Если рука ещё не определена или пуста — показываем пустой контейнер
+		if (!hand || hand.length === 0) {
+			handDiv.innerHTML = '';
+			return;
+		}
+
+		handDiv.innerHTML = '';
+		for (let i = 0; i < hand.length; i++) {
+			const t = hand[i];
+			const tileDiv = document.createElement('div');
+			tileDiv.className = 'tile player';
+			if (t.star) tileDiv.classList.add('star');
+			if (game.selectedTile && game.selectedTile.playerIdx === currentPlayer && game.selectedTile.handIndex === i) {
+				tileDiv.classList.add('sel');
+			}
+			const display = t.star ? (t.replaces || '*') : t.letter;
+			tileDiv.innerHTML = `${display}<small>${t.points}</small>`;
+			tileDiv.onclick = (function(idx) { return function() { selectTile(idx); }; })(i);
+			handDiv.appendChild(tileDiv);
+		}
+	}
 	  function selectTile(idx) {
 		if (!dictReady) { showMsg("Словарь ещё не загружен", true); return; }
 		if (game.gameOver) return;
@@ -2337,34 +2353,36 @@
 	  addEventLog("🔄 Новая игра начата", false);
 	}
 
-	  async function initGame() {
-		await loadDictionary();
-		await initSound();
-		// Инициализация AnimationManager
+	async function initGame() {
+		await loadDictionary();     // ждём словарь – обязателен для проверки
+		initSound();                // звук грузим в фоне – не блокируем
+
 		animManager = new AnimationManager();
 		const logList = document.getElementById('event-log');
 		if (logList) logList.innerHTML = '';
 		addEventLog("Новая игра начата", false);
+
 		game.bag = initBag();
 		game.board = Array(15).fill().map(() => Array(15).fill(null));
 		game.hand = [[], []];
-		game.scores = [0,0];
+		game.scores = [0, 0];
 		game.currentPlayer = 0;
 		game.gameOver = false;
 		game.firstMove = true;
 		game.pendingPlaced = [];
 		game.selectedTile = null;
+
 		drawTiles(0, 7);
 		drawTiles(1, 7);
 		updateMusicButtons();
 		renderBoard();
 		renderHand();
 		updateUI();
+
 		if (game.currentPlayer === 1) setTimeout(() => aiMakeMove(), 300);
-		
-		// Устанавливаем флаг, что инициализация завершена
+
 		window.gameInitialized = true;
-	  }
+	}
 
 		document.addEventListener('DOMContentLoaded', () => {
 		  document.getElementById('swapBtn').onclick = skipTurn;
@@ -2634,6 +2652,158 @@
 	  // Глобальный экземпляр AnimationManager
 	  let animManager = null;
 	</script>
+
+
+
+<script>
+  (function() {
+    // ---------- 1. ЗАГРУЗКА SQL.JS И БАЗЫ ДАННЫХ ----------
+    let db = null;
+    let ready = false;
+
+    async function loadDatabase(SQL) {
+      try {
+        const response = await fetch('dictionary.sqlite');
+        const arrayBuffer = await response.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        db = new SQL.Database(uint8Array);
+        ready = true;
+        console.log('✅ Словарь определений загружен');
+        const statusDiv = document.getElementById('dict-status');
+        if (statusDiv) statusDiv.innerText = '✅ Определения готовы';
+      } catch (err) {
+        console.error('❌ Ошибка загрузки БД:', err);
+      }
+    }
+
+    function waitForSQL() {
+      return new Promise((resolve) => {
+        if (window.SQL) return resolve(window.SQL);
+        const interval = setInterval(() => {
+          if (window.SQL) {
+            clearInterval(interval);
+            resolve(window.SQL);
+          }
+        }, 100);
+      });
+    }
+
+    async function initDictionary() {
+      if (!window.SQL) {
+        const script = document.createElement('script');
+        script.src = 'sql-wasm.js';
+        document.head.appendChild(script);
+        await waitForSQL();
+      } else {
+        await waitForSQL();
+      }
+      await loadDatabase(window.SQL);
+    }
+
+    window.getDefinition = async function(word) {
+      if (!db || !ready) return null;
+      try {
+        const stmt = db.prepare("SELECT definition FROM definitions WHERE word = ?");
+        stmt.bind([word.toUpperCase()]);
+        if (stmt.step()) {
+          let def = stmt.get()[0];
+          stmt.free();
+          def = def.replace(/<[^>]*>/g, '').trim();
+          return def;
+        }
+        stmt.free();
+        return null;
+      } catch(e) {
+        console.error('Ошибка SQL:', e);
+        return null;
+      }
+    };
+
+    // ---------- 2. ФУНКЦИЯ ПОКАЗА ОПРЕДЕЛЕНИЯ (безопасная) ----------
+    let pendingWord = null;
+    let popupTimer = null;
+
+    async function showDefinition(word) {
+      if (pendingWord === word) return;
+      pendingWord = word;
+      const popup = document.getElementById('hint-popup');
+      if (!popup) return;
+      popup.textContent = `📖 Ищем "${word}"...`;
+      popup.classList.add('show');
+      if (popupTimer) clearTimeout(popupTimer);
+      popupTimer = setTimeout(() => popup.classList.remove('show'), 5000);
+
+      const definition = await window.getDefinition(word);
+      if (definition) {
+        popup.textContent = `📖 ${word}: ${definition}`;
+      } else {
+        popup.textContent = `❌ Определение для "${word}" не найдено.`;
+        console.log(`⚠️ Слово "${word}" отсутствует в БД.`);
+      }
+      if (popupTimer) clearTimeout(popupTimer);
+      popupTimer = setTimeout(() => popup.classList.remove('show'), 5000);
+      pendingWord = null;
+    }
+
+    // ---------- 3. ИЗВЛЕЧЕНИЕ СЛОВА ИЗ ТЕКСТА ЗАПИСИ ЖУРНАЛА ----------
+    function extractWordFromLogEntry(entryElement) {
+      // Берём текст из элемента записи (включая все span)
+      const text = entryElement.innerText;
+      // Находим первое русское слово длиной 2-20 букв
+      const match = text.match(/[А-ЯЁа-яё]{2,20}/);
+      if (match) return match[0].toUpperCase();
+      return null;
+    }
+
+    // ---------- 4. НАВЕШИВАЕМ КЛИК НА ЖУРНАЛ (без обёртки слов) ----------
+    function setupJournalClick() {
+      const log = document.getElementById('event-log');
+      if (!log) {
+        setTimeout(setupJournalClick, 200);
+        return;
+      }
+      log.addEventListener('click', (e) => {
+        // Находим элемент записи (li)
+        const li = e.target.closest('.event-item');
+        if (!li) return;
+        const word = extractWordFromLogEntry(li);
+        if (word) {
+          console.log(`🔍 Клик по записи: извлечено слово "${word}"`);
+          showDefinition(word);
+        } else {
+          console.log(`❌ Не удалось извлечь слово из: ${li.innerText.slice(0, 50)}`);
+        }
+      });
+      console.log('✅ Слушатель кликов на журнале установлен');
+    }
+
+    // ---------- 5. ДОБАВЛЯЕМ ВИЗУАЛЬНУЮ ПОДСКАЗКУ (курсор) ----------
+    const style = document.createElement('style');
+    style.textContent = `
+      #event-log li {
+        cursor: pointer;
+        transition: background 0.1s;
+      }
+      #event-log li:hover {
+        background-color: rgba(76, 175, 80, 0.15);
+      }
+    `;
+    document.head.appendChild(style);
+
+    // ---------- 6. ЗАПУСК ----------
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setupJournalClick();
+        initDictionary().catch(console.error);
+      });
+    } else {
+      setupJournalClick();
+      initDictionary().catch(console.error);
+    }
+  })();
+</script>
+
+
 
 	<!-- Анимационный слой -->
 	<div id="animation-layer" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 1000; display: flex; align-items: center; justify-content: center;">
