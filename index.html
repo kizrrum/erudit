@@ -905,7 +905,7 @@
     async function loadDictionary() {
         document.getElementById("statusMsg").innerText = "Загрузка слов...";
         try {
-            let resp = await fetch('/words.txt');
+            let resp = await fetch('words.txt');
             let text = await resp.text();
             let words = text.split(/\r?\n/).filter(w=>w.trim().length>1 && /^[а-яё]+$/i.test(w));
             for(let w of words) dictionary.addWord(w.toLowerCase());
