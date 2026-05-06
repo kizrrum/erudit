@@ -375,7 +375,94 @@
 				margin-bottom: 2px !important;
 				font-size: 0.8rem !important;
 			}
-		}		
+		}
+		/* 2. Специально для горизонтального режима (Landscape) */
+		@media (max-width: 950px) and (orientation: landscape) {
+			.floating-panel {
+				display: grid !important;
+				grid-template-columns: 1fr 2fr 1fr; /* Счет | Фишки | Кнопки */
+				align-items: center;
+				gap: 10px !important;
+				padding: 5px 10px !important;
+				height: auto !important;
+			}
+
+			.turn-indicator {
+				margin: 0 !important;
+				font-size: 0.7rem !important;
+				grid-column: 1 / 4; 
+			}
+
+			.scoreboard {
+				flex-direction: column !important;
+				gap: 2px !important;
+				background: none !important;
+				padding: 0 !important;
+			}
+			
+			.player-card { font-size: 0.7rem !important; }
+			.player-score { font-size: 1rem !important; }
+
+			.hand-container {
+				flex-wrap: nowrap !important;
+				overflow-x: auto;
+				justify-content: center !important;
+				min-height: 45px !important;
+			}
+			.tile {
+				width: 38px !important;
+				height: 38px !important;
+				flex-shrink: 0;
+			}
+
+			.button-group {
+				flex-wrap: wrap !important;
+				margin: 0 !important;
+				gap: 4px !important;
+				justify-content: flex-end !important;
+			}
+			.button-group button {
+				width: 32px !important;
+				height: 32px !important;
+				font-size: 0.9rem !important;
+			}
+
+			.tiles-left, .status, .drag-handle { 
+				display: none !important; 
+			}
+		}
+
+
+
+.exchange-modal-overlay {
+    display: none; 
+    position: fixed; 
+    z-index: 5000; 
+    left: 0; top: 0; 
+    width: 100%; height: 100%; 
+    background-color: rgba(0, 0, 0, 0.8); 
+    justify-content: center; 
+    align-items: center;
+}
+.exchange-modal-box {
+    background: #fff; 
+    padding: 25px; 
+    border-radius: 15px; 
+    text-align: center; 
+    max-width: 300px; 
+    width: 90%;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+}
+.exchange-confirm-btn {
+    background: #2e7d32; color: white; border: none; padding: 12px 20px;
+    border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px;
+}
+.exchange-cancel-btn {
+    background: #eee; color: #333; border: none; padding: 8px;
+    border-radius: 8px; cursor: pointer; width: 100%;
+}
+
+		
     </style>
 </head>
 <body>
@@ -407,8 +494,9 @@
         <div class="button-group">
             <button id="endTurnBtn" title="Завершить ход">✅</button>
             <button id="hintBtn" class="hint-btn" title="Подсказка">💡</button>
-            <button id="resetGameBtn" class="reset-btn" title="Новая игра">🔄</button>
+            <button id="resetGameBtn" class="reset-btn" title="Новая игра">☢️</button>
             <button id="clearSelectionBtn" class="clear-btn" title="Снять выбор">✖️</button>
+			<button id="skipTurnBtn" title="Обмен и пропуск хода" style="background: linear-gradient(135deg, #6c757d, #495057);">🔄</button>
             <button id="returnToHandBtn" class="return-btn" title="Вернуть выделенную фишку в руку">↩️</button>
         </div>
     </div>
@@ -442,7 +530,16 @@
         <button class="close-modal" style="width: 100%; cursor: pointer; margin-top: 15px; font-weight: bold;">Погнали!</button>
     </div>
 </div>
-
+<div id="exchangeModalWindow" class="exchange-modal-overlay">
+    <div class="exchange-modal-box">
+        <h3 style="margin-top:0; color:#2e7d32;">Обмен и пропуск</h3>
+        <p id="exchangeText">Сколько фишек заменить?</p>
+        <input type="number" id="exchangeCountInput" min="1" value="1" 
+               style="width: 70px; padding: 10px; font-size: 20px; text-align: center; margin-bottom: 20px;">
+        <button id="confirmExchangeBtn" class="exchange-confirm-btn">Заменить фишки</button>
+        <button id="cancelExchangeBtn" class="exchange-cancel-btn">Отмена</button>
+    </div>
+</div>
 <script>
     // ======================== БОНУСЫ ПОЛЯ ========================
     const TW = [[0,0],[0,7],[0,14],[7,0],[7,14],[14,0],[14,7],[14,14]];
@@ -985,6 +1082,122 @@
             resetGame();
         } catch(e) { document.getElementById("statusMsg").innerText = "Ошибка: нет words.txt"; console.error(e); }
     }
+		// Функция пропуска хода с обменом и автоматическим возвратом фишек
+// 1. Открытие окна
+function openExchangeModal() {
+    if (currentPlayer !== "human") return;
+
+    // Сначала возвращаем фишки с поля в руку, если они там есть
+    if (currentMoveTiles.length > 0) {
+        currentMoveTiles.forEach(t => {
+            let tile = board[t.row][t.col];
+            if (tile && tile.isNew) {
+                humanHand.push({ letter: tile.letter, points: tile.points });
+                board[t.row][t.col] = null;
+            }
+        });
+        currentMoveTiles = [];
+        renderBoard();
+        renderHumanHand();
+    }
+
+    const maxTiles = humanHand.length;
+    if (maxTiles === 0) {
+        alert("У вас нет фишек для обмена!");
+        return;
+    }
+
+    // Настраиваем лимиты в инпуте
+    const input = document.getElementById("exchangeCountInput");
+    input.max = maxTiles;
+    input.value = 1; // Сброс на 1 при открытии
+    
+    document.getElementById("exchangeText").innerText = `У вас ${maxTiles} фиш. Сколько меняем?`;
+    document.getElementById("exchangeModalWindow").style.display = "flex";
+}
+
+// Эту функцию ставим на кнопку "Пропуск" (skipTurnBtn)
+function openExchangeModal() {
+    if (currentPlayer !== "human") return;
+
+    // 1. Возвращаем фишки с поля в руку (ваша логика сохранения)
+    if (currentMoveTiles.length > 0) {
+        for (let t of currentMoveTiles) {
+            let tileOnBoard = board[t.row][t.col];
+            if (tileOnBoard && tileOnBoard.isNew) {
+                humanHand.push({ letter: tileOnBoard.letter, points: tileOnBoard.points });
+                board[t.row][t.col] = null;
+            }
+        }
+        currentMoveTiles = [];
+    }
+
+    const maxTiles = humanHand.length;
+    if (maxTiles === 0) {
+        document.getElementById("statusMsg").innerText = "❌ Нет фишек для обмена";
+        return;
+    }
+
+    // Настраиваем окно под текущее кол-во фишек
+    const input = document.getElementById("exchangeCountInput");
+    input.max = maxTiles;
+    input.value = 1;
+    document.getElementById("exchangeText").innerText = `У вас ${maxTiles} фишек. Сколько меняем?`;
+    
+    renderBoard();
+    renderHumanHand();
+    document.getElementById("exchangeModalWindow").style.display = "flex";
+}
+
+// Эту функцию вызываем при нажатии "Заменить фишки" в модалке
+async function executeExchange() {
+    const input = document.getElementById("exchangeCountInput");
+    const count = parseInt(input.value);
+    const maxTiles = humanHand.length;
+
+    if (isNaN(count) || count < 1 || count > maxTiles) {
+        alert(`Введите число от 1 до ${maxTiles}`);
+        return;
+    }
+
+    // Закрываем окно
+    document.getElementById("exchangeModalWindow").style.display = "none";
+
+    // --- ЛОГИКА ОБМЕНА (ваша) ---
+    for (let i = 0; i < count; i++) {
+        const randomIndex = Math.floor(Math.random() * humanHand.length);
+        const tile = humanHand.splice(randomIndex, 1)[0];
+        letterBag.push(tile);
+    }
+
+    // Перемешивание мешка
+    for (let i = letterBag.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [letterBag[i], letterBag[j]] = [letterBag[j], letterBag[i]];
+    }
+
+    // Добор
+    const newTiles = takeTiles(count);
+    humanHand.push(...newTiles);
+
+    // Сброс состояния
+    selectedTileIndex = null;
+    selectedBoardTile = null;
+    clearHintHighlight();
+    document.getElementById("statusMsg").innerText = `🔄 Заменено ${count} фиш. Ход ИИ.`;
+
+    updateUI();
+    renderBoard();
+    renderHumanHand();
+    updateTilesLeft();
+
+    // Автоматический переход к ИИ (async здесь нужен для await)
+    setTimeout(async () => {
+        currentPlayer = "ai";
+        updateUI();
+        await aiMove();
+    }, 600);
+}
 
     // ======================== ПЕРЕТАСКИВАНИЕ ПАНЕЛИ ========================
     const panel = document.getElementById('floatingPanel');
@@ -1025,6 +1238,11 @@
     document.getElementById("clearSelectionBtn").addEventListener("click", ()=>{ selectedTileIndex=null; selectedBoardTile=null; renderHumanHand(); renderBoard(); document.getElementById("statusMsg").innerText="Выбор снят"; });
     document.getElementById("hintBtn").addEventListener("click", showHint);
     document.getElementById("returnToHandBtn").addEventListener("click", returnSelectedTileToHand);
+document.getElementById("skipTurnBtn").onclick = openExchangeModal;
+document.getElementById("confirmExchangeBtn").onclick = executeExchange;
+document.getElementById("cancelExchangeBtn").onclick = () => {
+document.getElementById("exchangeModalWindow").style.display = "none";
+};
     const modal = document.getElementById("helpModal");
     document.getElementById("helpBtn").addEventListener("click", ()=>modal.style.display="flex");
     document.querySelector(".close-modal").addEventListener("click", ()=>modal.style.display="none");
