@@ -305,6 +305,77 @@
         .close-modal {
             background: #8b5a2b; width: auto; border-radius: 10px; padding: 10px 20px; margin-top: 10px;
         }
+		
+		@media (max-width: 768px) {
+			.floating-panel {
+				/* Прижимаем к низу на всю ширину */
+				top: auto !important;
+				bottom: 0 !important;
+				left: 0 !important;
+				right: 0 !important;
+				width: 100% !important;
+				border-radius: 20px 20px 0 0 !important; /* Скругляем только верх */
+				padding: 8px 15px !important;
+				box-shadow: 0 -5px 20px rgba(0,0,0,0.4) !important;
+				display: flex;
+				flex-direction: column;
+				gap: 5px;
+			}
+
+			/* Скрываем ненужные на телефоне элементы, чтобы сэкономить место */
+			.drag-handle { 
+				display: none !important; 
+			}
+
+			/* Плющим счет: игроки в одну строку */
+			.scoreboard {
+				margin-bottom: 0 !important;
+				padding: 4px !important;
+			}
+			.player-score {
+				font-size: 1.2rem !important;
+			}
+
+			/* Компактная зона руки */
+			.hand-area {
+				padding: 5px !important;
+			}
+			.hand-container {
+				gap: 5px !important;
+				min-height: 55px !important;
+			}
+			.tile {
+				width: 42px !important;
+				height: 42px !important;
+			}
+			.tile div:first-child {
+				font-size: 1.4em !important;
+			}
+
+			/* Кнопки в ряд, поменьше */
+			.button-group {
+				margin-top: 5px !important;
+				gap: 8px !important;
+			}
+			.button-group button {
+				width: 38px !important;
+				height: 38px !important;
+				font-size: 1.1rem !important;
+			}
+
+			/* Статус и остаток фишек — в самый низ мелким шрифтом */
+			.tiles-left, .status {
+				font-size: 0.7rem !important;
+				margin: 0 !important;
+				padding: 2px !important;
+			}
+			
+			.turn-indicator {
+				padding: 3px !important;
+				margin-bottom: 2px !important;
+				font-size: 0.8rem !important;
+			}
+		}		
     </style>
 </head>
 <body>
@@ -930,16 +1001,21 @@
         panel.style.cursor = 'grabbing';
         e.preventDefault();
     });
-    window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        let left = e.clientX - offsetX;
-        let top = e.clientY - offsetY;
-        left = Math.min(window.innerWidth - panel.offsetWidth, Math.max(0, left));
-        top = Math.min(window.innerHeight - panel.offsetHeight, Math.max(0, top));
-        panel.style.left = left + 'px';
-        panel.style.top = top + 'px';
-        panel.style.right = 'auto';
-    });
+	window.addEventListener('mousemove', (e) => {
+		// Если мы не в режиме перетаскивания или это телефон (<= 768px) — ничего не делаем
+		if (!isDragging || window.innerWidth <= 768) return; 
+
+		let left = e.clientX - offsetX;
+		let top = e.clientY - offsetY;
+
+		// Ограничиваем панель рамками экрана
+		left = Math.min(window.innerWidth - panel.offsetWidth, Math.max(0, left));
+		top = Math.min(window.innerHeight - panel.offsetHeight, Math.max(0, top));
+
+		panel.style.left = left + 'px';
+		panel.style.top = top + 'px';
+		panel.style.right = 'auto';
+	});
     window.addEventListener('mouseup', () => { isDragging = false; panel.style.cursor = 'grab'; });
     resetPosBtn.addEventListener('click', () => { panel.style.left = 'auto'; panel.style.right = '20px'; panel.style.top = '80px'; });
 
