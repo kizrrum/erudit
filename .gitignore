@@ -1,0 +1,13 @@
+# Игнорировать всё
+*
+
+
+# Но не игнорировать эти файлы и папки
+!package.json
+!package-lock.json
+!server.js
+!words.txt
+!index.html
+!README.md
+!erudit-main_old.zip
+!.gitignore

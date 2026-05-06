@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Эрудит — Премиум Издание</title>
+    <style>
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #163020;
+            background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%230b1a11' fill-opacity='0.5'%3E%3Crect x='10' y='10' width='20' height='20' rx='3' /%3E%3Ctext x='15' y='25' font-family='serif' font-size='14' font-weight='bold' fill='%230b1a11'%3EЭ%3C/text%3E%3Ccircle cx='55' cy='55' r='4'/%3E%3Cpath d='M55 45 q2,5 0,10 q-2-5 0-10 M55 65 q2-5 0-10 q-2 5 0 10 M45 55 q5,2 10,0 q-5-2-10,0 M65 55 q-5,2-10,0 q 5-2 10,0' /%3E%3C/g%3E%3C/svg%3E");
+            background-size: 80px 80px;
+            margin: 0;
+            padding: 12px;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+            position: relative;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 10px auto;
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: fit-content;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #f8f0e3;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .board-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+
+        .scrabble-board {
+            border-collapse: collapse;
+            background: #f8f0e3;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+            border: 8px solid #3d2b1f;
+        }
+
+        .scrabble-board td {
+            width: clamp(30px, 5.5vmin, 48px);
+            height: clamp(30px, 5.5vmin, 48px);
+            text-align: center;
+            vertical-align: middle;
+            font-size: clamp(10px, 2vmin, 14px);
+            border: 1px solid rgba(100, 60, 25, 0.2);
+            font-weight: bold;
+        }
+
+        .tw { background-color: #e34234; color: white; }
+        .dw { background-color: #f4acb7; color: #500; }
+        .tl { background-color: #4c9be0; color: white; }
+        .dl { background-color: #a6d4fa; color: #004; }
+        .normal {
+            background-color: #e6d5b8;
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(100, 70, 40, 0.08) 0px,
+                rgba(100, 70, 40, 0.08) 2px,
+                transparent 2px,
+                transparent 8px
+            );
+        }
+        .star-cell { font-size: 1.5em; color: #d4af37; }
+        .bonus-label { font-size: 0.65em; font-weight: 900; }
+
+        /* Фишки на доске — объёмные */
+        .tile-on-board {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(145deg, #d0b072, #b8924a);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 245, 200, 0.5);
+            cursor: pointer;
+        }
+        .tile-on-board div:first-child {
+            font-size: 1.8em;
+            font-weight: 800;
+            line-height: 1;
+            margin: 0;
+            padding: 0;
+            color: #2a1c0a;
+            text-shadow: 0 1px 0 #fff0b0, 0 -1px 0 #6f4f2e;
+        }
+        .tile-on-board .tile-points {
+            background: #9b7a4a;
+            border-radius: 30px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #f9e5b3;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.3), 0 1px 0 #f0d28c;
+            margin-top: 2px;
+        }
+        .tile-on-board:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 245, 200, 0.8);
+        }
+        .tile-on-board:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 245, 200, 0.5);
+        }
+
+        /* Выделение фишки на доске */
+        .selected-board-tile {
+            box-shadow: 0 0 0 3px gold, 0 0 0 6px #b8860b, inset 0 0 0 2px #fff0b0;
+            background: linear-gradient(145deg, #e8cf8c, #cfaa58);
+            transform: scale(1.02);
+        }
+
+        /* Фишки в руке */
+        .tile {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(145deg, #d8bb7c, #c09f5b);
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 245, 200, 0.6);
+            cursor: pointer;
+            transition: all 0.08s linear;
+            font-weight: bold;
+        }
+        .tile div:first-child {
+            font-size: 1.8em;
+            font-weight: 800;
+            line-height: 1;
+            color: #2a1c0a;
+            text-shadow: 0 1px 0 #fff0b0, 0 -1px 0 #6f4f2e;
+        }
+        .tile-point {
+            background: #9b7a4a;
+            border-radius: 30px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #f9e5b3;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.3), 0 1px 0 #f0d28c;
+            margin-top: 2px;
+        }
+        .tile:hover { transform: translateY(-3px); box-shadow: 0 8px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 245, 200, 0.8); }
+        .tile:active { transform: translateY(1px); }
+        .tile.selected {
+            transform: scale(1.04) translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4), inset 0 0 0 2px #f5b81b, inset 0 0 0 4px #ffd966;
+            background: linear-gradient(145deg, #e8cf8c, #cfaa58);
+        }
+
+        .floating-panel {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            width: 290px;
+            background: #e7dbbd;
+            border-radius: 28px;
+            padding: 10px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            z-index: 1000;
+            border: 2px solid #b5976b;
+            cursor: grab;
+        }
+        .floating-panel:active { cursor: grabbing; }
+        .drag-handle {
+            text-align: center; font-size: 0.9rem; color: #5a3e1b;
+            margin-bottom: 8px; cursor: grab; background: #d8c49b;
+            border-radius: 40px; padding: 6px; font-weight: bold;
+        }
+        .scoreboard {
+            background: #2d2b1f; border-radius: 20px; padding: 8px;
+            display: flex; justify-content: space-between; margin-bottom: 8px;
+        }
+        .player-card { text-align: center; color: #f9eec1; flex: 1; }
+        .player-card.active { background: #7c5f3a; border-radius: 15px; box-shadow: 0 0 8px gold; }
+        .player-score { font-size: 1.6rem; font-weight: bold; }
+        .hand-area { background: #d8c49b; border-radius: 20px; padding: 10px; }
+        .hand-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; min-height: 70px; }
+/* Обновленные кнопки управления */
+        .button-group button {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px; /* Более современная скругленная форма */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2), 
+                        inset 0 1px 1px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Эффект глянца сверху */
+        .button-group button::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+            pointer-events: none;
+        }
+
+        /* Состояния при наведении */
+        .button-group button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3), 
+                        inset 0 1px 1px rgba(255, 255, 255, 0.4);
+            filter: brightness(1.1);
+        }
+
+        /* Состояние при нажатии */
+		.button-group {
+			display: flex;
+			flex-direction: row; /* Было column, теперь row — кнопки встанут горизонтально */
+			gap: 15px;
+			justify-content: center;
+			margin-top: 20px;
+		}
+
+/* Индивидуальные цвета с градиентами */
+        #endTurnBtn { background: linear-gradient(135deg, #5f8b5b, #4a6d47); }
+        #hintBtn { background: linear-gradient(135deg, #ff9800, #e68a00); }
+        #resetGameBtn { background: linear-gradient(135deg, #b1624b, #8e4e3c); }
+        #clearSelectionBtn { background: linear-gradient(135deg, #7c6b4a, #5f5238); }
+        #returnToHandBtn { background: linear-gradient(135deg, #b5651e, #8e4f17); }
+
+        /* Специальное свечение для кнопки завершения хода, когда она важна */
+        #endTurnBtn:hover {
+            box-shadow: 0 0 15px rgba(95, 139, 91, 0.6);
+        }
+        .tiles-left {
+            background: #2d2b1f; border-radius: 20px; padding: 6px 12px;
+            text-align: center; color: #f9eec1; font-weight: bold; margin-top: 8px;
+            font-size: 0.8rem;
+        }
+        .status {
+            font-size: 0.75rem; text-align: center; background: rgba(0,0,0,0.05);
+            border-radius: 10px; padding: 5px; margin-top: 8px; font-family: monospace;
+        }
+        .turn-indicator {
+            background: #4a3b28; border-radius: 32px; text-align: center;
+            padding: 6px; color: #ffefb9; font-weight: bold; margin-bottom: 8px;
+        }
+        .hint-cell { animation: pulse 0.8s ease-in-out 3; background-color: rgba(255, 152, 0, 0.6) !important; }
+        @keyframes pulse {
+            0%, 100% { background-color: rgba(255, 152, 0, 0.6); }
+            50% { background-color: rgba(255, 152, 0, 0.9); }
+        }
+        .modal {
+            display: none; position: fixed; z-index: 2000; left: 0; top: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.8);
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: #fdf5e6; padding: 30px; border-radius: 20px; max-width: 400px; text-align: center;
+        }
+        .close-modal {
+            background: #8b5a2b; width: auto; border-radius: 10px; padding: 10px 20px; margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="legend">
+    <div class="legend-item"><span class="legend-box" style="background:#e34234;">TW</span> х3 слово</div>
+    <div class="legend-item"><span class="legend-box" style="background:#f4acb7; color:#500;">DW</span> х2 слово</div>
+    <div class="legend-item"><span class="legend-box" style="background:#4c9be0;">TL</span> х3 буква</div>
+    <div class="legend-item"><span class="legend-box" style="background:#a6d4fa; color:#004;">DL</span> х2 буква</div>
+    <div class="legend-item"><span style="color:#d4af37; font-size: 1.4rem;">★</span> Старт</div>
+</div>
+
+<div class="board-wrapper">
+    <table class="scrabble-board" id="boardGrid"><tbody id="boardBody"></tbody><tr>
+</div>
+
+<div id="floatingPanel" class="floating-panel">
+	<div class="drag-handle" id="dragHandle">
+		🧩 Перетащить 
+		<button id="helpBtn" style="width:auto; height:auto; padding:2px 8px; font-size:0.9rem; border-radius:10px; background:transparent; color:#e34234; font-weight:bold; vertical-align:middle; margin-right:5px;">❓</button>
+		<button id="resetPosBtn" style="width:auto; height:auto; padding:2px 8px; font-size:0.6rem; border-radius:10px; background:#7c5f3a;">⟳</button>
+	</div>
+    <div class="scoreboard">
+        <div class="player-card" id="humanCard"><div>🧑 Человек</div><div class="player-score" id="humanScore">0</div></div>
+        <div class="player-card" id="aiCard"><div>🤖 Компьютер</div><div class="player-score" id="aiScore">0</div></div>
+    </div>
+    <div class="hand-area">
+        <div class="hand-container" id="humanHand"></div>
+        <div class="button-group">
+            <button id="endTurnBtn" title="Завершить ход">✅</button>
+            <button id="hintBtn" class="hint-btn" title="Подсказка">💡</button>
+            <button id="resetGameBtn" class="reset-btn" title="Новая игра">🔄</button>
+            <button id="clearSelectionBtn" class="clear-btn" title="Снять выбор">✖️</button>
+            <button id="returnToHandBtn" class="return-btn" title="Вернуть выделенную фишку в руку">↩️</button>
+        </div>
+    </div>
+    <div class="tiles-left">🎲 В мешке: <span id="tilesLeft">0</span> фишек</div>
+    <div class="status" id="statusMsg">Загрузка словаря...</div>
+</div>
+
+<div id="helpModal" class="modal">
+    <div class="modal-content" style="text-align: left; max-width: 500px;">
+        <h2 style="text-align: center; color: #5a3e1b; margin-top: 0;">📜 Шпаргалка игрока</h2>
+        
+        <div style="font-size: 0.9rem; line-height: 1.4; color: #3d2b1f;">
+            <p><strong>Как ходить:</strong> Кликни на фишку в руке, затем на пустую клетку поля. Ошибся? Кликни ПКМ на выставленную фишку на поле, чтобы вернуть её назад.</p>
+            
+            <p><strong>Бонусы (умножение):</strong>
+                <br>• <span style="color:#e34234; font-weight:bold;">TW</span> — х3 за всё <b>слово</b>.
+                <br>• <span style="color:#f4acb7; font-weight:bold;">DW</span> — х2 за всё <b>слово</b>.
+                <br>• <span style="color:#4c9be0; font-weight:bold;">TL</span> — х3 за конкретную <b>букву</b>.
+                <br>• <span style="color:#a6d4fa; font-weight:bold;">DL</span> — х2 за конкретную <b>букву</b>.
+            </p>
+
+            <p><strong>Фишки в игре:</strong>
+                <br>• За раз можно выставить до 7 букв.
+                <br>• Выставил все 7 сразу? Лови <b>бонус +50 очков</b>!
+                <br>• Если буквы совсем плохие — просто нажми 🔄 (Новая игра), мы никому не скажем.
+            </p>
+
+            <p><strong>Важно:</strong> Первое слово должно проходить через центр (★). Все последующие — обязательно цепляться за уже лежащие на поле буквы.</p>
+        </div>
+
+        <button class="close-modal" style="width: 100%; cursor: pointer; margin-top: 15px; font-weight: bold;">Погнали!</button>
+    </div>
+</div>
+
+<script>
+    // ======================== БОНУСЫ ПОЛЯ ========================
+    const TW = [[0,0],[0,7],[0,14],[7,0],[7,14],[14,0],[14,7],[14,14]];
+    const DW = [[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[8,8],[9,9],[10,10],[11,11],[12,12],[13,13],[1,13],[2,12],[3,11],[4,10],[5,9],[6,8],[8,6],[9,5],[10,4],[11,3],[12,2],[13,1]];
+    const TL = [[0,3],[0,11],[2,6],[2,8],[3,0],[3,7],[3,14],[6,2],[6,12],[7,3],[7,11],[8,2],[8,12],[11,0],[11,7],[11,14],[12,6],[12,8],[14,3],[14,11]];
+    const DL = [[0,1],[0,13],[1,0],[1,14],[1,5],[1,9],[2,4],[2,10],[3,3],[3,11],[4,2],[4,12],[5,1],[5,13],[5,5],[5,9],[6,0],[6,14],[6,6],[6,8],[8,6],[8,8],[9,5],[9,9],[10,2],[10,12],[11,3],[11,11],[12,4],[12,10],[13,5],[13,9],[13,0],[13,14],[14,1],[14,13]];
+    const bonusMap = Array(15).fill().map(()=>Array(15).fill("normal"));
+    for(let [r,c] of TW) bonusMap[r][c] = "tw";
+    for(let [r,c] of DW) bonusMap[r][c] = "dw";
+    for(let [r,c] of TL) bonusMap[r][c] = "tl";
+    for(let [r,c] of DL) if(bonusMap[r][c] === "normal") bonusMap[r][c] = "dl";
+    bonusMap[7][7] = "normal";
+
+    // ======================== БУКВЫ И МЕШОК ========================
+    const lettersDB = [
+        {letter:"А", points:1, freq:10},{letter:"Б", points:3, freq:3},{letter:"В", points:2, freq:5},{letter:"Г", points:3, freq:3},
+        {letter:"Д", points:2, freq:5},{letter:"Е", points:1, freq:9},{letter:"Ё", points:3, freq:1},{letter:"Ж", points:5, freq:2},
+        {letter:"З", points:5, freq:2},{letter:"И", points:1, freq:8},{letter:"Й", points:2, freq:4},{letter:"К", points:2, freq:6},
+        {letter:"Л", points:2, freq:4},{letter:"М", points:2, freq:5},{letter:"Н", points:1, freq:8},{letter:"О", points:1, freq:10},
+        {letter:"П", points:2, freq:6},{letter:"Р", points:2, freq:6},{letter:"С", points:2, freq:6},{letter:"Т", points:2, freq:5},
+        {letter:"У", points:3, freq:3},{letter:"Ф", points:10, freq:1},{letter:"Х", points:5, freq:2},{letter:"Ц", points:10, freq:1},
+        {letter:"Ч", points:5, freq:2},{letter:"Ш", points:10, freq:1},{letter:"Щ", points:10, freq:1},{letter:"Ъ", points:10, freq:1},
+        {letter:"Ы", points:5, freq:2},{letter:"Ь", points:5, freq:2},{letter:"Э", points:10, freq:1},{letter:"Ю", points:10, freq:1},{letter:"Я", points:3, freq:3}
+    ];
+    let letterBag = [];
+    function buildBag() { let bag=[]; for(let db of lettersDB) for(let i=0;i<db.freq;i++) bag.push({letter:db.letter, points:db.points}); for(let i=bag.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [bag[i],bag[j]]=[bag[j],bag[i]]; } return bag; }
+    function takeTiles(n) { let tiles=[]; for(let i=0;i<n && letterBag.length;i++) tiles.push(letterBag.pop()); updateTilesLeft(); return tiles; }
+    function updateTilesLeft() { document.getElementById("tilesLeft").innerText = letterBag.length; }
+
+    // ======================== GADDAG ========================
+    class GaddagNode { constructor() { this.children = {}; this.isEnd = false; } }
+    class Gaddag {
+        constructor() { this.root = new GaddagNode(); this.SEP = '>'; }
+        addWord(word) {
+            let w = word.toLowerCase();
+            for(let i=1; i<=w.length; i++) {
+                let prefix = w.slice(0,i).split('').reverse().join('');
+                let suffix = w.slice(i);
+                this._insert(prefix + this.SEP + suffix);
+            }
+        }
+        _insert(path) {
+            let node = this.root;
+            for(let ch of path) { if(!node.children[ch]) node.children[ch] = new GaddagNode(); node = node.children[ch]; }
+            node.isEnd = true;
+        }
+        findWords(anchor, rack, maxLeft) {
+            let results = [];
+            let hookNode = this.root.children[anchor];
+            if(!hookNode) return results;
+            let dfs = (node, usedRack, path, mode, leftUsed) => {
+                if(node.isEnd && mode===1) { let word = this._pathToWord(path); if(word.length>1) results.push(word); }
+                for(let ch in node.children) {
+                    if(ch === this.SEP) { dfs(node.children[ch], usedRack, path+ch, 1, leftUsed); continue; }
+                    let idx = usedRack.indexOf(ch);
+                    if(idx !== -1) {
+                        let newRack = usedRack.slice(0,idx)+usedRack.slice(idx+1);
+                        if(mode===0 && leftUsed < maxLeft) dfs(node.children[ch], newRack, path+ch, 0, leftUsed+1);
+                        else if(mode===1) dfs(node.children[ch], newRack, path+ch, 1, leftUsed);
+                    }
+                }
+            };
+            dfs(hookNode, rack, anchor, 0, 0);
+            return results;
+        }
+        _pathToWord(path) { let [revPref, suff] = path.split(this.SEP); return revPref.split('').reverse().join('') + (suff||''); }
+        hasWord(word) {
+            let w = word.toLowerCase();
+            for(let i=1;i<=w.length;i++) {
+                let path = w.slice(0,i).split('').reverse().join('') + this.SEP + w.slice(i);
+                let node = this.root;
+                for(let ch of path) { if(!node.children[ch]) return false; node = node.children[ch]; }
+                if(node.isEnd) return true;
+            }
+            return false;
+        }
+    }
+    let dictionary = new Gaddag();
+    let dictLoaded = false;
+
+    // ======================== ИГРОВОЕ СОСТОЯНИЕ ========================
+    let board = Array(15).fill().map(()=>Array(15).fill(null));
+    let humanHand = [], aiHand = [];
+    let scores = { human:0, ai:0 };
+    let currentPlayer = "human";
+    let currentMoveTiles = [];         // массив {row, col, letter, points}
+    let selectedTileIndex = null;      // фишка в руке
+    let selectedBoardTile = null;      // {row, col} для фишки на доске
+    let currentHintCells = [];
+
+    function updateUI() {
+        document.getElementById("humanScore").innerText = scores.human;
+        document.getElementById("aiScore").innerText = scores.ai;
+        document.getElementById("humanCard").classList.toggle("active", currentPlayer === "human");
+        document.getElementById("aiCard").classList.toggle("active", currentPlayer === "ai");
+        let turnDiv = document.getElementById("turnText");
+        if(turnDiv) turnDiv.innerHTML = currentPlayer === "human" ? "⚡ Ход: Человек" : "🤖 Ход: Компьютер";
+    }
+
+    function clearHintHighlight() { 
+        currentHintCells.forEach(c => { let td = document.querySelector(`td[data-row='${c.row}'][data-col='${c.col}']`); if(td) td.classList.remove("hint-cell"); }); 
+        currentHintCells = []; 
+    }
+
+    // Вернуть выделенную фишку с доски в руку
+    function returnSelectedTileToHand() {
+        if (!selectedBoardTile) {
+            document.getElementById("statusMsg").innerText = "Нет выделенной фишки на доске";
+            return;
+        }
+        let tile = board[selectedBoardTile.row][selectedBoardTile.col];
+        if (!tile || !tile.isNew || tile.player !== "human") {
+            selectedBoardTile = null;
+            renderBoard();
+            document.getElementById("statusMsg").innerText = "Эта фишка уже не может быть возвращена";
+            return;
+        }
+        // Удалить с доски
+        board[selectedBoardTile.row][selectedBoardTile.col] = null;
+        // Вернуть в руку
+        humanHand.push({ letter: tile.letter, points: tile.points });
+        // Удалить из currentMoveTiles
+        let idx = currentMoveTiles.findIndex(t => t.row === selectedBoardTile.row && t.col === selectedBoardTile.col);
+        if (idx !== -1) currentMoveTiles.splice(idx, 1);
+        selectedBoardTile = null;
+        clearHintHighlight();
+        renderBoard();
+        renderHumanHand();
+        document.getElementById("statusMsg").innerText = `↩️ Буква ${tile.letter} возвращена в руку`;
+    }
+
+    function renderBoard() {
+        const boardBody = document.getElementById("boardBody");
+        boardBody.innerHTML = "";
+        for(let i=0;i<15;i++) {
+            let tr = document.createElement("tr");
+            for(let j=0;j<15;j++) {
+                let td = document.createElement("td");
+                td.className = bonusMap[i][j];
+                td.setAttribute("data-row", i);
+                td.setAttribute("data-col", j);
+                let tile = board[i][j];
+                if(tile) {
+                    let div = document.createElement("div"); 
+                    div.className = "tile-on-board";
+                    div.innerHTML = `<div>${tile.letter}</div><div class="tile-points">${tile.points}</div>`;
+                    if (selectedBoardTile && selectedBoardTile.row === i && selectedBoardTile.col === j) {
+                        div.classList.add("selected-board-tile");
+                    }
+                    if(currentPlayer === "human" && tile.isNew && tile.player==="human") {
+                        // Левая кнопка - выделить/переместить
+                        div.addEventListener("click", (e) => { e.stopPropagation(); selectBoardTile(i, j); });
+                        // Правая кнопка - вернуть в руку
+                        div.addEventListener("contextmenu", (e) => {
+                            e.preventDefault();
+                            if (tile.isNew && tile.player === "human") {
+                                selectBoardTile(i, j); // сначала выделим
+                                returnSelectedTileToHand();
+                            }
+                        });
+                        // Drag & Drop для фишки на доске
+                        div.setAttribute("draggable", "true");
+                        div.addEventListener("dragstart", (e) => {
+                            e.dataTransfer.setData("text/plain", JSON.stringify({
+                                type: "boardTile",
+                                row: i, col: j,
+                                letter: tile.letter,
+                                points: tile.points
+                            }));
+                            e.dataTransfer.effectAllowed = "move";
+                        });
+                    }
+                    td.appendChild(div);
+                } else if(i===7 && j===7) td.innerHTML = "<span class='star-cell'>★</span>";
+                else {
+                    let label = {tw:"TW",dw:"DW",tl:"TL",dl:"DL"}[bonusMap[i][j]];
+                    if(label) td.innerHTML = `<span class="bonus-label">${label}</span>`;
+                    else td.innerHTML = "&nbsp;";
+                }
+                td.addEventListener("dragover", e=>e.preventDefault());
+                td.addEventListener("drop", e=>{ let data=e.dataTransfer.getData("text/plain"); if(data) handleDropOnBoard(e,i,j); });
+                td.addEventListener("click", (e) => { if(currentPlayer === "human") handleBoardClick(i, j); });
+                tr.appendChild(td);
+            }
+            boardBody.appendChild(tr);
+        }
+    }
+
+    // Выделение фишки на доске
+    function selectBoardTile(row, col) {
+        if (currentPlayer !== "human") return;
+        let tile = board[row][col];
+        if (!tile || !tile.isNew || tile.player !== "human") {
+            document.getElementById("statusMsg").innerText = "❌ Нельзя выбрать эту фишку";
+            return;
+        }
+        // Снимаем предыдущее выделение
+        if (selectedBoardTile) {
+            let prevTd = document.querySelector(`td[data-row='${selectedBoardTile.row}'][data-col='${selectedBoardTile.col}']`);
+            if (prevTd) {
+                let prevDiv = prevTd.querySelector('.tile-on-board');
+                if (prevDiv) prevDiv.classList.remove('selected-board-tile');
+            }
+        }
+        // Если кликнули по той же фишке — снимаем выделение
+        if (selectedBoardTile && selectedBoardTile.row === row && selectedBoardTile.col === col) {
+            selectedBoardTile = null;
+            document.getElementById("statusMsg").innerText = "Выделение снято";
+        } else {
+            selectedBoardTile = { row, col };
+            document.getElementById("statusMsg").innerText = `🔍 Выделена ${board[row][col].letter} на (${row},${col})`;
+        }
+        renderBoard();  // обновляем стиль выделения
+    }
+
+    function renderHumanHand() {
+        const container = document.getElementById("humanHand");
+        container.innerHTML = "";
+        for(let i=0;i<humanHand.length;i++) {
+            let t = humanHand[i];
+            let el = document.createElement("div"); el.className = "tile"; el.setAttribute("data-idx",i);
+            if(selectedTileIndex === i) el.classList.add("selected");
+            el.innerHTML = `<div>${t.letter}</div><div class="tile-point">${t.points}</div>`;
+            el.setAttribute("draggable","true");
+            el.addEventListener("dragstart", e=>{ e.dataTransfer.setData("text/plain", JSON.stringify({type:"handTile", idx:i, letter:t.letter, points:t.points})); e.dataTransfer.effectAllowed = "copy"; });
+            el.addEventListener("click", (e) => { e.stopPropagation(); selectTileForPlacement(i); });
+            container.appendChild(el);
+        }
+        if(!humanHand.length) container.innerHTML = "<div style='padding:10px;'>🎲 Нет букв</div>";
+    }
+
+    function selectTileForPlacement(idx) {
+        if(currentPlayer !== "human") return;
+        if(selectedTileIndex === idx) { selectedTileIndex = null; document.getElementById("statusMsg").innerText = "Выбор снят"; }
+        else { selectedTileIndex = idx; document.getElementById("statusMsg").innerText = `Выбрана буква: ${humanHand[idx].letter}`; }
+        renderHumanHand();
+    }
+
+    function handleBoardClick(row, col) {
+        if(currentPlayer !== "human") return;
+
+        // ---------- ПЕРЕМЕЩЕНИЕ ВЫДЕЛЕННОЙ ФИШКИ С ДОСКИ ----------
+        if (selectedBoardTile !== null) {
+            if (board[row][col] !== null) {
+                document.getElementById("statusMsg").innerText = "❌ Клетка занята!";
+                return;
+            }
+            let from = selectedBoardTile;
+            let tileToMove = board[from.row][from.col];
+            if (!tileToMove || !tileToMove.isNew || tileToMove.player !== "human") {
+                selectedBoardTile = null;
+                renderBoard();
+                document.getElementById("statusMsg").innerText = "Ошибка: фишка больше не доступна";
+                return;
+            }
+            // Перемещаем
+            board[from.row][from.col] = null;
+            board[row][col] = tileToMove;
+            // Обновляем currentMoveTiles
+            let moveIndex = currentMoveTiles.findIndex(t => t.row === from.row && t.col === from.col);
+            if (moveIndex !== -1) {
+                currentMoveTiles[moveIndex] = { row, col, letter: tileToMove.letter, points: tileToMove.points };
+            }
+            selectedBoardTile = null;
+            clearHintHighlight();
+            renderBoard();
+            document.getElementById("statusMsg").innerText = `🔁 Фишка ${tileToMove.letter} перемещена на (${row},${col})`;
+            return;
+        }
+
+        // ---------- РАЗМЕЩЕНИЕ ИЗ РУКИ (старая логика) ----------
+        if(selectedTileIndex !== null) {
+            if(board[row][col] !== null) { document.getElementById("statusMsg").innerText = "❌ Клетка занята!"; return; }
+            let tileData = humanHand[selectedTileIndex];
+            if(!tileData) { selectedTileIndex = null; renderHumanHand(); return; }
+            let removed = humanHand.splice(selectedTileIndex,1)[0];
+            board[row][col] = { letter:removed.letter, points:removed.points, isNew:true, player:"human" };
+            currentMoveTiles.push({row,col,letter:removed.letter,points:removed.points});
+            selectedTileIndex = null;
+            clearHintHighlight();
+            renderBoard(); renderHumanHand();
+            document.getElementById("statusMsg").innerText = `✨ Буква ${removed.letter} на (${row},${col})`;
+        } else {
+            document.getElementById("statusMsg").innerText = "Сначала кликните по фишке в руке или выделите фишку на доске";
+        }
+    }
+
+    function handleDropOnBoard(e, row, col) {
+        e.preventDefault();
+        if(currentPlayer !== "human") return;
+        if(board[row][col] !== null) return;
+        let raw = e.dataTransfer.getData("text/plain");
+        if(!raw) return;
+        let data = JSON.parse(raw);
+
+        // Перетаскивание фишки с доски
+        if(data.type === "boardTile") {
+            let { row: fromRow, col: fromCol, letter, points } = data;
+            let tile = board[fromRow][fromCol];
+            if (!tile || !tile.isNew || tile.player !== "human") return;
+            // Перемещаем
+            board[fromRow][fromCol] = null;
+            board[row][col] = { letter, points, isNew: true, player: "human" };
+            let moveIndex = currentMoveTiles.findIndex(t => t.row === fromRow && t.col === fromCol);
+            if (moveIndex !== -1) {
+                currentMoveTiles[moveIndex] = { row, col, letter, points };
+            }
+            if (selectedBoardTile && selectedBoardTile.row === fromRow && selectedBoardTile.col === fromCol) {
+                selectedBoardTile = null;
+            }
+            renderBoard();
+            document.getElementById("statusMsg").innerText = `🔁 Перетащили ${letter} на (${row},${col})`;
+            return;
+        }
+        // Перетаскивание из руки
+        else if(data.type === "handTile") {
+            let { idx, letter, points } = data;
+            if(idx===undefined || humanHand[idx]===undefined || humanHand[idx].letter !== letter) return;
+            let removed = humanHand.splice(idx,1)[0];
+            board[row][col] = { letter:removed.letter, points:removed.points, isNew:true, player:"human" };
+            currentMoveTiles.push({row,col,letter:removed.letter,points:removed.points});
+            if(selectedTileIndex !== null) selectedTileIndex = null;
+            renderBoard(); renderHumanHand();
+            document.getElementById("statusMsg").innerText = `✨ Буква ${removed.letter} на (${row},${col})`;
+        }
+    }
+
+    // Возврат фишки с доски в руку (оставлено для совместимости, но используется контекстное меню)
+    function returnTileFromBoard(row,col) {
+        let tile = board[row][col];
+        if(tile && tile.isNew && tile.player==="human") {
+            board[row][col] = null;
+            humanHand.push({letter:tile.letter, points:tile.points});
+            let idx = currentMoveTiles.findIndex(t=>t.row===row && t.col===col);
+            if(idx!==-1) currentMoveTiles.splice(idx,1);
+            if(selectedBoardTile && selectedBoardTile.row === row && selectedBoardTile.col === col) selectedBoardTile = null;
+            clearHintHighlight();
+            renderBoard(); renderHumanHand();
+            document.getElementById("statusMsg").innerText = `↩️ Возвращена ${tile.letter}`;
+        }
+    }
+
+    function getWordAt(row,col, direction) {
+        let word="", cells=[];
+        if(direction==='h') { let c=col; while(c>=0 && board[row][c]) c--; c++; while(c<15 && board[row][c]) { word += board[row][c].letter; cells.push({row, col:c}); c++; } }
+        else { let r=row; while(r>=0 && board[r][col]) r--; r++; while(r<15 && board[r][col]) { word += board[r][col].letter; cells.push({row:r, col}); r++; } }
+        return {word, cells};
+    }
+
+    function computeMoveScore(moveCells) {
+        if(moveCells.length===0) return 0;
+        let total=0, wordMult=1;
+        let allWords = new Set();
+        for(let cell of moveCells) {
+            let {row,col} = cell;
+            let tile = board[row][col];
+            let bonus = bonusMap[row][col];
+            let letterPoints = tile.points;
+            if(bonus==="dl") letterPoints *= 2;
+            if(bonus==="tl") letterPoints *= 3;
+            if(bonus==="dw") wordMult *= 2;
+            if(bonus==="tw") wordMult *= 3;
+            total += letterPoints;
+            let horiz = getWordAt(row,col,'h'), vert = getWordAt(row,col,'v');
+            if(horiz.word.length>1) allWords.add(horiz.word);
+            if(vert.word.length>1) allWords.add(vert.word);
+        }
+        total *= wordMult;
+        if(moveCells.length===7) total += 50;
+        for(let w of allWords) if(w.length>1 && !dictionary.hasWord(w)) return 0;
+        return total;
+    }
+
+    function getAllValidWordsFromRack(rackStr) {
+        let res = new Set();
+        let letters = rackStr.split('');
+        function bt(cur, used) {
+            if(cur.length>=2 && dictionary.hasWord(cur)) res.add(cur);
+            if(cur.length>=7) return;
+            for(let i=0;i<letters.length;i++) if(!used[i]) { used[i]=true; bt(cur+letters[i],used); used[i]=false; }
+        }
+        bt('', new Array(letters.length).fill(false));
+        return Array.from(res);
+    }
+
+    function buildMoveHorizontal(word, startCol, row) { let tmp=[]; for(let k=0;k<word.length;k++) { let col=startCol+k; if(col<0||col>14) return null; tmp.push({row,col,letter:word[k].toUpperCase(), points:lettersDB.find(l=>l.letter===word[k].toUpperCase())?.points||1}); } return tmp; }
+    function buildMoveVertical(word, startRow, col) { let tmp=[]; for(let k=0;k<word.length;k++) { let row=startRow+k; if(row<0||row>14) return null; tmp.push({row,col,letter:word[k].toUpperCase(), points:lettersDB.find(l=>l.letter===word[k].toUpperCase())?.points||1}); } return tmp; }
+
+    function findBestMove(rack, playerType) {
+        let rackStr = rack.map(t=>t.letter.toLowerCase()).join('');
+        let best = { score:-1, moveCells:null, placedWord:null };
+        let isFirstMove = board.every(row=>row.every(cell=>cell===null));
+        if(isFirstMove) {
+            let allWords = getAllValidWordsFromRack(rackStr);
+            for(let word of allWords) {
+                let w=word.toLowerCase(), len=w.length;
+                for(let startCol=Math.max(0,7-len+1); startCol<=7; startCol++) { let mv = buildMoveHorizontal(w,startCol,7); if(mv) { let sc = simulateAndGetScore(mv,rack,playerType,word); if(sc>best.score) { best.score=sc; best.moveCells=mv; best.placedWord=word; } } }
+                for(let startRow=Math.max(0,7-len+1); startRow<=7; startRow++) { let mv = buildMoveVertical(w,startRow,7); if(mv) { let sc = simulateAndGetScore(mv,rack,playerType,word); if(sc>best.score) { best.score=sc; best.moveCells=mv; best.placedWord=word; } } }
+            }
+            return best;
+        }
+        for(let i=0;i<15;i++) for(let j=0;j<15;j++) if(board[i][j]) {
+            let anchor = board[i][j].letter.toLowerCase();
+            for(let dir of ['h','v']) {
+                let leftSpace=0; if(dir==='h') for(let c=j-1;c>=0 && !board[i][c];c--) leftSpace++;
+                else for(let r=i-1;r>=0 && !board[r][j];r--) leftSpace++;
+                let words = dictionary.findWords(anchor, rackStr, leftSpace);
+                for(let w of words) {
+                    let anchorPos = w.indexOf(anchor);
+                    if(anchorPos===-1) continue;
+                    let start = (dir==='h') ? j-anchorPos : i-anchorPos;
+                    let tmpMove=[], valid=true, usedRack=[...rackStr];
+                    for(let k=0;k<w.length;k++) {
+                        let r = (dir==='h') ? i : start+k, c = (dir==='h') ? start+k : j;
+                        if(r<0||r>14||c<0||c>14) { valid=false; break; }
+                        let need = w[k];
+                        if(board[r][c]) { if(board[r][c].letter.toLowerCase()!==need) { valid=false; break; } }
+                        else { let idx=usedRack.indexOf(need); if(idx===-1) { valid=false; break; } usedRack.splice(idx,1); tmpMove.push({row:r, col:c, letter:need.toUpperCase(), points:lettersDB.find(l=>l.letter===need.toUpperCase())?.points||1}); }
+                    }
+                    if(valid && tmpMove.length) {
+                        let touches=tmpMove.some(m => (m.row>0&&board[m.row-1][m.col])||(m.row<14&&board[m.row+1][m.col])||(m.col>0&&board[m.row][m.col-1])||(m.col<14&&board[m.row][m.col+1]));
+                        if(!touches && board[7][7]===null && !tmpMove.some(m=>m.row===7&&m.col===7)) continue;
+                        let sc = simulateAndGetScore(tmpMove, rack, playerType, w);
+                        if(sc>best.score) { best.score=sc; best.moveCells=tmpMove; best.placedWord=w; }
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
+    function simulateAndGetScore(tmpMove, rack, playerType, word) {
+        let backup=[], rackCopy=[...rack];
+        for(let m of tmpMove) {
+            let idx = rackCopy.findIndex(t=>t.letter===m.letter);
+            if(idx===-1) return 0;
+            backup.push({idx, tile:rackCopy[idx]});
+            rackCopy.splice(idx,1);
+            board[m.row][m.col] = { letter:m.letter, points:m.points, isNew:true, player:playerType };
+        }
+        let score = computeMoveScore(tmpMove);
+        for(let m of tmpMove) board[m.row][m.col] = null;
+        return score;
+    }
+
+    async function commitMove() {
+        if(currentMoveTiles.length===0) { document.getElementById("statusMsg").innerText = "❌ Нет фишек!"; return false; }
+        let score = computeMoveScore(currentMoveTiles);
+        if(score===0) { document.getElementById("statusMsg").innerText = "❌ Неверное слово! Сбросьте ход."; return false; }
+        scores[currentPlayer === "human" ? "human":"ai"] += score;
+        for(let t of currentMoveTiles) board[t.row][t.col].isNew = false;
+        let needed = 7 - (currentPlayer==="human"? humanHand.length : aiHand.length);
+        if(needed>0) { let newTiles = takeTiles(needed); if(currentPlayer==="human") humanHand.push(...newTiles); else aiHand.push(...newTiles); }
+        currentMoveTiles = [];
+        selectedTileIndex = null;
+        selectedBoardTile = null;
+        clearHintHighlight();
+        updateUI(); renderBoard(); if(currentPlayer==="human") renderHumanHand();
+        document.getElementById("statusMsg").innerText = `✅ Ход завершён! +${score}`;
+        return true;
+    }
+
+    async function aiMove() {
+        if(!dictLoaded || currentPlayer !== "ai") return;
+        document.getElementById("statusMsg").innerText = "🤖 Компьютер думает...";
+        let best = findBestMove([...aiHand], "ai");
+        if(best.score <= 0) {
+            document.getElementById("statusMsg").innerText = "🤖 Нет ходов, пропуск.";
+            setTimeout(()=> switchTurn(), 800);
+            return;
+        }
+        for(let m of best.moveCells) {
+            let idx = aiHand.findIndex(t=>t.letter===m.letter);
+            if(idx!==-1) aiHand.splice(idx,1);
+            board[m.row][m.col] = { letter:m.letter, points:m.points, isNew:true, player:"ai" };
+            currentMoveTiles.push(m);
+        }
+        let finalScore = computeMoveScore(currentMoveTiles);
+        scores.ai += finalScore;
+        for(let t of currentMoveTiles) board[t.row][t.col].isNew = false;
+        let needed = 7 - aiHand.length;
+        if(needed>0) aiHand.push(...takeTiles(needed));
+        currentMoveTiles = [];
+        updateUI(); renderBoard();
+        document.getElementById("statusMsg").innerText = `🤖 ${best.placedWord.toUpperCase()} +${finalScore}`;
+        setTimeout(()=> switchTurn(), 600);
+    }
+
+    async function switchTurn() {
+        if(!dictLoaded) return;
+        if(currentPlayer === "human") {
+            if(!await commitMove()) return;
+            if(letterBag.length===0 && humanHand.length===0) { alert(`Конец! ${scores.human>scores.ai?"Человек победил":"Компьютер победил"}`); return; }
+            currentPlayer = "ai";
+            updateUI(); renderHumanHand();
+            await aiMove();
+        } else {
+            currentPlayer = "human";
+            updateUI(); renderHumanHand();
+            document.getElementById("statusMsg").innerText = "Ваш ход! Кликните на букву → на клетку, или перемещайте фишки на доске";
+        }
+    }
+
+    function showHint() {
+        if(currentPlayer!=="human") { document.getElementById("statusMsg").innerText = "Сейчас ход ИИ"; return; }
+        if(!dictLoaded) return;
+        let rackCopy = [...humanHand];
+        let best = findBestMove(rackCopy, "human");
+        if(best.score<=0) { document.getElementById("statusMsg").innerText = "Нет доступных ходов"; return; }
+        clearHintHighlight();
+        for(let cell of best.moveCells) { currentHintCells.push(cell); let td = document.querySelector(`td[data-row='${cell.row}'][data-col='${cell.col}']`); if(td) td.classList.add("hint-cell"); }
+        document.getElementById("statusMsg").innerText = `💡 Лучший ход: "${best.placedWord.toUpperCase()}" → ${best.score} очков`;
+        setTimeout(()=> { clearHintHighlight(); if(currentPlayer==="human") document.getElementById("statusMsg").innerText = "Подсветка снята"; }, 4000);
+    }
+
+    function resetGame() {
+        letterBag = buildBag();
+        board = Array(15).fill().map(()=>Array(15).fill(null));
+        humanHand = takeTiles(7); aiHand = takeTiles(7);
+        scores = { human:0, ai:0 };
+        currentPlayer = "human";
+        currentMoveTiles = [];
+        selectedTileIndex = null;
+        selectedBoardTile = null;
+        clearHintHighlight();
+        updateUI(); renderBoard(); renderHumanHand();
+        updateTilesLeft();
+        document.getElementById("statusMsg").innerText = "Новая игра! Ваш ход.";
+    }
+
+    async function loadDictionary() {
+        document.getElementById("statusMsg").innerText = "Загрузка слов...";
+        try {
+            let resp = await fetch('/words.txt');
+            let text = await resp.text();
+            let words = text.split(/\r?\n/).filter(w=>w.trim().length>1 && /^[а-яё]+$/i.test(w));
+            for(let w of words) dictionary.addWord(w.toLowerCase());
+            dictLoaded = true;
+            document.getElementById("statusMsg").innerText = `Словарь: ${words.length} слов. Игра готова.`;
+            resetGame();
+        } catch(e) { document.getElementById("statusMsg").innerText = "Ошибка: нет words.txt"; console.error(e); }
+    }
+
+    // ======================== ПЕРЕТАСКИВАНИЕ ПАНЕЛИ ========================
+    const panel = document.getElementById('floatingPanel');
+    const dragHandle = document.getElementById('dragHandle');
+    const resetPosBtn = document.getElementById('resetPosBtn');
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    dragHandle.addEventListener('mousedown', (e) => {
+        if (e.target === resetPosBtn) return;
+        isDragging = true;
+        offsetX = e.clientX - panel.offsetLeft;
+        offsetY = e.clientY - panel.offsetTop;
+        panel.style.cursor = 'grabbing';
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        let left = e.clientX - offsetX;
+        let top = e.clientY - offsetY;
+        left = Math.min(window.innerWidth - panel.offsetWidth, Math.max(0, left));
+        top = Math.min(window.innerHeight - panel.offsetHeight, Math.max(0, top));
+        panel.style.left = left + 'px';
+        panel.style.top = top + 'px';
+        panel.style.right = 'auto';
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; panel.style.cursor = 'grab'; });
+    resetPosBtn.addEventListener('click', () => { panel.style.left = 'auto'; panel.style.right = '20px'; panel.style.top = '80px'; });
+
+    // ======================== ПОДКЛЮЧЕНИЕ КНОПОК ========================
+    document.getElementById("endTurnBtn").addEventListener("click", ()=> { if(currentPlayer==="human") switchTurn(); });
+    document.getElementById("resetGameBtn").addEventListener("click", resetGame);
+    document.getElementById("clearSelectionBtn").addEventListener("click", ()=>{ selectedTileIndex=null; selectedBoardTile=null; renderHumanHand(); renderBoard(); document.getElementById("statusMsg").innerText="Выбор снят"; });
+    document.getElementById("hintBtn").addEventListener("click", showHint);
+    document.getElementById("returnToHandBtn").addEventListener("click", returnSelectedTileToHand);
+    const modal = document.getElementById("helpModal");
+    document.getElementById("helpBtn").addEventListener("click", ()=>modal.style.display="flex");
+    document.querySelector(".close-modal").addEventListener("click", ()=>modal.style.display="none");
+    window.addEventListener("click", (e)=>{ if(e.target===modal) modal.style.display="none"; });
+
+    // Добавим индикатор хода в панель
+    const turnDiv = document.createElement('div');
+    turnDiv.id = "turnText";
+    turnDiv.className = "turn-indicator";
+    turnDiv.innerHTML = "⚡ Ход: Человек";
+    panel.insertBefore(turnDiv, panel.querySelector('.hand-area'));
+
+    loadDictionary();
+</script>
+</body>
+</html>
