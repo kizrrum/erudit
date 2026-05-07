@@ -60,31 +60,36 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        .board-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            margin-top: 10px;
-            overflow-x: auto;
-        }
+.board-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    overflow-x: auto;
+    width: 100%;
+}
 
-        .scrabble-board {
-            border-collapse: collapse;
-            background: #f8f0e3;
-            border-radius: 12px;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.6);
-            border: 8px solid #3d2b1f;
-        }
+.scrabble-board {
+    border-collapse: collapse;
+    background: #f8f0e3;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+    border: 8px solid #3d2b1f;
+    width: auto;
+    height: auto;
+}
 
-        .scrabble-board td {
-            width: clamp(30px, 5.5vmin, 48px);
-            height: clamp(30px, 5.5vmin, 48px);
-            text-align: center;
-            vertical-align: middle;
-            font-size: clamp(10px, 2vmin, 14px);
-            border: 1px solid rgba(100, 60, 25, 0.2);
-            font-weight: bold;
-        }
+/* === КЛЕТКИ — квадратные и масштабируемые === */
+.scrabble-board td {
+    width: min(6vw, 6vh, 48px);
+    height: min(6vw, 6vh, 48px);
+    text-align: center;
+    vertical-align: middle;
+    font-size: clamp(10px, 1.8vmin, 14px);
+    border: 1px solid rgba(100, 60, 25, 0.2);
+    font-weight: bold;
+}
 
         .tw { background-color: #e34234; color: white; }
         .dw { background-color: #f4acb7; color: #500; }
@@ -103,7 +108,6 @@
         .star-cell { font-size: 1.5em; color: #d4af37; }
         .bonus-label { font-size: 0.65em; font-weight: 900; }
 
-        /* Фишки на доске — объёмные */
         .tile-on-board {
             display: flex;
             flex-direction: column;
@@ -144,14 +148,12 @@
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 245, 200, 0.5);
         }
 
-        /* Выделение фишки на доске */
         .selected-board-tile {
             box-shadow: 0 0 0 3px gold, 0 0 0 6px #b8860b, inset 0 0 0 2px #fff0b0;
             background: linear-gradient(145deg, #e8cf8c, #cfaa58);
             transform: scale(1.02);
         }
 
-        /* Фишки в руке */
         .tile {
             width: 50px;
             height: 50px;
@@ -160,7 +162,7 @@
             align-items: center;
             justify-content: center;
             background: linear-gradient(145deg, #d8bb7c, #c09f5b);
-            border-radius: 12px;
+            border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 245, 200, 0.6);
             cursor: pointer;
             transition: all 0.08s linear;
@@ -219,11 +221,17 @@
         .player-score { font-size: 1.6rem; font-weight: bold; }
         .hand-area { background: #d8c49b; border-radius: 20px; padding: 10px; }
         .hand-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; min-height: 70px; }
-/* Обновленные кнопки управления */
+        .button-group {
+            display: flex;
+            flex-direction: row;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
         .button-group button {
             width: 46px;
-            height: 46px;
-            border-radius: 14px; /* Более современная скругленная форма */
+            height: 36px;
+            border-radius: 20%;
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
             font-size: 1.3rem;
@@ -237,8 +245,6 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2), 
                         inset 0 1px 1px rgba(255, 255, 255, 0.3);
         }
-
-        /* Эффект глянца сверху */
         .button-group button::after {
             content: '';
             position: absolute;
@@ -247,32 +253,17 @@
             background: linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
             pointer-events: none;
         }
-
-        /* Состояния при наведении */
         .button-group button:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3), 
                         inset 0 1px 1px rgba(255, 255, 255, 0.4);
             filter: brightness(1.1);
         }
-
-        /* Состояние при нажатии */
-		.button-group {
-			display: flex;
-			flex-direction: row; /* Было column, теперь row — кнопки встанут горизонтально */
-			gap: 15px;
-			justify-content: center;
-			margin-top: 20px;
-		}
-
-/* Индивидуальные цвета с градиентами */
         #endTurnBtn { background: linear-gradient(135deg, #5f8b5b, #4a6d47); }
         #hintBtn { background: linear-gradient(135deg, #ff9800, #e68a00); }
         #resetGameBtn { background: linear-gradient(135deg, #b1624b, #8e4e3c); }
         #clearSelectionBtn { background: linear-gradient(135deg, #7c6b4a, #5f5238); }
         #returnToHandBtn { background: linear-gradient(135deg, #b5651e, #8e4f17); }
-
-        /* Специальное свечение для кнопки завершения хода, когда она важна */
         #endTurnBtn:hover {
             box-shadow: 0 0 15px rgba(95, 139, 91, 0.6);
         }
@@ -305,186 +296,262 @@
         .close-modal {
             background: #8b5a2b; width: auto; border-radius: 10px; padding: 10px 20px; margin-top: 10px;
         }
-		
-		@media (max-width: 768px) {
-			.floating-panel {
-				/* Прижимаем к низу на всю ширину */
-				top: auto !important;
-				bottom: 0 !important;
-				left: 0 !important;
-				right: 0 !important;
-				width: 100% !important;
-				border-radius: 20px 20px 0 0 !important; /* Скругляем только верх */
-				padding: 8px 15px !important;
-				box-shadow: 0 -5px 20px rgba(0,0,0,0.4) !important;
-				display: flex;
-				flex-direction: column;
-				gap: 5px;
-			}
+        
+ /* ВЕРТИКАЛЬНЫЙ РЕЖИМ (телефон портретом) */
+@media (max-width: 768px) and (orientation: portrait) {
+    .floating-panel {
+        position: fixed !important;
+        top: auto !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        border-radius: 20px 20px 0 0 !important;
+        padding: 8px 15px !important;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.4) !important;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .scrabble-board td {
+        width: min(7vw, 7vh, 42px);
+        height: min(7vw, 7vh, 42px);
+        font-size: clamp(8px, 2vmin, 12px);
+    }
+    .drag-handle { 
+        display: none !important; 
+    }
 
-			/* Скрываем ненужные на телефоне элементы, чтобы сэкономить место */
-			.drag-handle { 
-				display: none !important; 
-			}
+    .scoreboard {
+        margin-bottom: 0 !important;
+        padding: 4px !important;
+    }
+    
+    .player-score {
+        font-size: 1.2rem !important;
+    }
 
-			/* Плющим счет: игроки в одну строку */
-			.scoreboard {
-				margin-bottom: 0 !important;
-				padding: 4px !important;
-			}
-			.player-score {
-				font-size: 1.2rem !important;
-			}
+    .hand-area {
+        padding: 5px !important;
+    }
+    
+    .hand-container {
+        gap: 5px !important;
+        min-height: 55px !important;
+        justify-content: center;
+    }
+    
+    .tile {
+        width: 42px !important;
+        height: 42px !important;
+    }
+    
+    .tile div:first-child {
+        font-size: 1.4em !important;
+    }
 
-			/* Компактная зона руки */
-			.hand-area {
-				padding: 5px !important;
-			}
-			.hand-container {
-				gap: 5px !important;
-				min-height: 55px !important;
-			}
-			.tile {
-				width: 42px !important;
-				height: 42px !important;
-			}
-			.tile div:first-child {
-				font-size: 1.4em !important;
-			}
+    .button-group {
+        margin-top: 5px !important;
+        gap: 8px !important;
+        justify-content: center !important;
+    }
+    
+    .button-group button {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 1.1rem !important;
+    }
 
-			/* Кнопки в ряд, поменьше */
-			.button-group {
-				margin-top: 5px !important;
-				gap: 8px !important;
-			}
-			.button-group button {
-				width: 38px !important;
-				height: 38px !important;
-				font-size: 1.1rem !important;
-			}
-
-			/* Статус и остаток фишек — в самый низ мелким шрифтом */
-			.tiles-left, .status {
-				font-size: 0.7rem !important;
-				margin: 0 !important;
-				padding: 2px !important;
-			}
-			
-			.turn-indicator {
-				padding: 3px !important;
-				margin-bottom: 2px !important;
-				font-size: 0.8rem !important;
-			}
-		}
-		/* 2. Специально для горизонтального режима (Landscape) */
-		@media (max-width: 950px) and (orientation: landscape) {
-			.floating-panel {
-				display: grid !important;
-				grid-template-columns: 1fr 2fr 1fr; /* Счет | Фишки | Кнопки */
-				align-items: center;
-				gap: 10px !important;
-				padding: 5px 10px !important;
-				height: auto !important;
-			}
-
-			.turn-indicator {
-				margin: 0 !important;
-				font-size: 0.7rem !important;
-				grid-column: 1 / 4; 
-			}
-
-			.scoreboard {
-				flex-direction: column !important;
-				gap: 2px !important;
-				background: none !important;
-				padding: 0 !important;
-			}
-			
-			.player-card { font-size: 0.7rem !important; }
-			.player-score { font-size: 1rem !important; }
-
-			.hand-container {
-				flex-wrap: nowrap !important;
-				overflow-x: auto;
-				justify-content: center !important;
-				min-height: 45px !important;
-			}
-			.tile {
-				width: 38px !important;
-				height: 38px !important;
-				flex-shrink: 0;
-			}
-
-			.button-group {
-				flex-wrap: wrap !important;
-				margin: 0 !important;
-				gap: 4px !important;
-				justify-content: flex-end !important;
-			}
-			.button-group button {
-				width: 32px !important;
-				height: 32px !important;
-				font-size: 0.9rem !important;
-			}
-
-			.tiles-left, .status, .drag-handle { 
-				display: none !important; 
-			}
-		}
-
-
-
-.exchange-modal-overlay {
-    display: none; 
-    position: fixed; 
-    z-index: 5000; 
-    left: 0; top: 0; 
-    width: 100%; height: 100%; 
-    background-color: rgba(0, 0, 0, 0.8); 
-    justify-content: center; 
-    align-items: center;
-}
-.exchange-modal-box {
-    background: #fff; 
-    padding: 25px; 
-    border-radius: 15px; 
-    text-align: center; 
-    max-width: 300px; 
-    width: 90%;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-}
-.exchange-confirm-btn {
-    background: #2e7d32; color: white; border: none; padding: 12px 20px;
-    border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px;
-}
-.exchange-cancel-btn {
-    background: #eee; color: #333; border: none; padding: 8px;
-    border-radius: 8px; cursor: pointer; width: 100%;
+    .tiles-left, .status {
+        font-size: 0.7rem !important;
+        margin: 0 !important;
+        padding: 2px !important;
+    }
+    
+    .turn-indicator {
+        padding: 3px !important;
+        margin-bottom: 2px !important;
+        font-size: 0.8rem !important;
+    }
 }
 
-		
+/* ГОРИЗОНТАЛЬНЫЙ РЕЖИМ (телефон лёжа) */
+@media (max-width: 950px) and (orientation: landscape) {
+    body {
+        padding: 5px !important;
+        overflow-y: auto !important;
+    }
+
+    .board-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    position: fixed !important;
+    top: 5px !important;
+    left: 5px !important;
+    right: 5px !important;
+    bottom: 65px !important;
+    overflow: auto !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    }
+.scrabble-board {
+    width: 90% !important;
+    height: 90% !important;
+}
+    .scrabble-board td {
+    width: auto !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important;  /* ← квадратные клетки */
+    }
+
+    .floating-panel {
+        position: fixed !important;
+        top: auto !important;
+        bottom: 0 !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+        border-radius: 15px 15px 0 0 !important;
+        padding: 5px 8px !important;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 5px !important;
+        background: #e7dbbd !important;
+        z-index: 1000;
+    }
+
+    .drag-handle {
+        display: none !important;
+    }
+
+    .turn-indicator {
+        margin: 0 !important;
+        padding: 2px 8px !important;
+        font-size: 0.7rem !important;
+        background: #4a3b28;
+        border-radius: 20px;
+        color: #ffefb9;
+        width: auto !important;
+    }
+
+    .scoreboard {
+        flex-direction: row !important;
+        gap: 15px !important;
+        background: #2d2b1f !important;
+        border-radius: 15px !important;
+        padding: 4px 10px !important;
+        margin: 0 !important;
+        width: auto !important;
+    }
+
+    .player-card {
+        font-size: 0.7rem !important;
+        display: flex !important;
+        gap: 5px !important;
+        align-items: baseline !important;
+    }
+    
+    .player-card div:first-child {
+        font-size: 0.7rem !important;
+    }
+    
+    .player-score {
+        font-size: 1rem !important;
+    }
+
+    .hand-area {
+        padding: 0 !important;
+        background: transparent !important;
+        flex: 0 1 auto !important;                   /* ← растягивается, но не больше нужного */
+        min-width: 0 !important;
+        max-width: auto !important;   
+    }
+
+.hand-container {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    min-height: 55px !important;
+    padding: 3px 0 !important;
+    width: 100% !important;
+}
+    
+    .tile {
+        width: 40px !important;
+        height: 40px !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .tile div:first-child {
+        font-size: 1.2em !important;
+    }
+
+.button-group {
+    margin: 0 !important;
+    gap: 5px !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-end !important;  /* ← прижать к правому краю */
+    flex-shrink: 0 !important;             /* ← не сжимать */
+}
+    
+    .button-group button {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 1rem !important;
+    }
+
+    .tiles-left, .status {
+        display: none !important;
+    }
+}
+
+        .exchange-modal-overlay {
+            display: none; 
+            position: fixed; 
+            z-index: 5000; 
+            left: 0; top: 0; 
+            width: 100%; height: 100%; 
+            background-color: rgba(0, 0, 0, 0.8); 
+            justify-content: center; 
+            align-items: center;
+        }
+        .exchange-modal-box {
+            background: #fff; 
+            padding: 25px; 
+            border-radius: 15px; 
+            text-align: center; 
+            max-width: 300px; 
+            width: 90%;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        .exchange-confirm-btn {
+            background: #2e7d32; color: white; border: none; padding: 12px 20px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px;
+        }
+        .exchange-cancel-btn {
+            background: #eee; color: #333; border: none; padding: 8px;
+            border-radius: 8px; cursor: pointer; width: 100%;
+        }
     </style>
 </head>
 <body>
-<!--
-<div class="legend">
-    <div class="legend-item"><span class="legend-box" style="background:#e34234;">TW</span> х3</div>
-    <div class="legend-item"><span class="legend-box" style="background:#f4acb7; color:#500;">DW</span> х2</div>
-    <div class="legend-item"><span class="legend-box" style="background:#4c9be0;">TL</span> х3</div>
-    <div class="legend-item"><span class="legend-box" style="background:#a6d4fa; color:#004;">DL</span> х2</div>
-    <div class="legend-item"><span style="color:#d4af37; font-size: 1.4rem;">★</span> Go!</div>
-</div>
--->
 <div class="board-wrapper">
-    <table class="scrabble-board" id="boardGrid"><tbody id="boardBody"></tbody><tr>
+    <table class="scrabble-board" id="boardGrid"><tbody id="boardBody"></tbody></table>
 </div>
 
 <div id="floatingPanel" class="floating-panel">
-	<div class="drag-handle" id="dragHandle">
-		🧩 Перетащить 
-		<button id="helpBtn" style="width:auto; height:auto; padding:2px 8px; font-size:0.9rem; border-radius:10px; background:transparent; color:#e34234; font-weight:bold; vertical-align:middle; margin-right:5px;">❓</button>
-		<button id="resetPosBtn" style="width:auto; height:auto; padding:2px 8px; font-size:0.6rem; border-radius:10px; background:#7c5f3a;">⟳</button>
-	</div>
+    <div class="drag-handle" id="dragHandle">
+        🧩 Перетащить 
+        <button id="helpBtn" style="width:auto; height:auto; padding:2px 8px; font-size:0.9rem; border-radius:10px; background:transparent; color:#e34234; font-weight:bold; vertical-align:middle; margin-right:5px;">❓</button>
+        <button id="resetPosBtn" style="width:auto; height:auto; padding:2px 8px; font-size:0.6rem; border-radius:10px; background:#7c5f3a;">⟳</button>
+    </div>
     <div class="scoreboard">
         <div class="player-card" id="humanCard"><div>🧑 Чел</div><div class="player-score" id="humanScore">0</div></div>
         <div class="player-card" id="aiCard"><div>🤖 Комп</div><div class="player-score" id="aiScore">0</div></div>
@@ -496,7 +563,7 @@
             <button id="hintBtn" class="hint-btn" title="Подсказка">💡</button>
             <button id="resetGameBtn" class="reset-btn" title="Новая игра">☢️</button>
             <button id="clearSelectionBtn" class="clear-btn" title="Снять выбор">✖️</button>
-			<button id="skipTurnBtn" title="Обмен и пропуск хода" style="background: linear-gradient(135deg, #6c757d, #495057);">🔄</button>
+            <button id="skipTurnBtn" title="Обмен и пропуск хода" style="background: linear-gradient(135deg, #6c757d, #495057);">🔄</button>
             <button id="returnToHandBtn" class="return-btn" title="Вернуть выделенную фишку в руку">↩️</button>
         </div>
     </div>
@@ -507,26 +574,21 @@
 <div id="helpModal" class="modal">
     <div class="modal-content" style="text-align: left; max-width: 500px;">
         <h2 style="text-align: center; color: #5a3e1b; margin-top: 0;">📜 Шпаргалка игрока</h2>
-        
         <div style="font-size: 0.9rem; line-height: 1.4; color: #3d2b1f;">
             <p><strong>Как ходить:</strong> Кликни на фишку в руке, затем на пустую клетку поля. Ошибся? Кликни ПКМ на выставленную фишку на поле, чтобы вернуть её назад.</p>
-            
             <p><strong>Бонусы (умножение):</strong>
                 <br>• <span style="color:#e34234; font-weight:bold;">TW</span> — х3 за всё <b>слово</b>.
                 <br>• <span style="color:#f4acb7; font-weight:bold;">DW</span> — х2 за всё <b>слово</b>.
                 <br>• <span style="color:#4c9be0; font-weight:bold;">TL</span> — х3 за конкретную <b>букву</b>.
                 <br>• <span style="color:#a6d4fa; font-weight:bold;">DL</span> — х2 за конкретную <b>букву</b>.
             </p>
-
             <p><strong>Фишки в игре:</strong>
                 <br>• За раз можно выставить до 7 букв.
                 <br>• Выставил все 7 сразу? Лови <b>бонус +50 очков</b>!
                 <br>• Если буквы совсем плохие — просто нажми ☢️ (Новая игра), мы никому не скажем.
             </p>
-
             <p><strong>Важно:</strong> Первое слово должно проходить через центр (★). Все последующие — обязательно цепляться за уже лежащие на поле буквы.</p>
         </div>
-
         <button class="close-modal" style="width: 100%; cursor: pointer; margin-top: 15px; font-weight: bold;">Погнали!</button>
     </div>
 </div>
@@ -541,7 +603,6 @@
     </div>
 </div>
 <script>
-    // ======================== БОНУСЫ ПОЛЯ ========================
     const TW = [[0,0],[0,7],[0,14],[7,0],[7,14],[14,0],[14,7],[14,14]];
     const DW = [[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[8,8],[9,9],[10,10],[11,11],[12,12],[13,13],[1,13],[2,12],[3,11],[4,10],[5,9],[6,8],[8,6],[9,5],[10,4],[11,3],[12,2],[13,1]];
     const TL = [[0,3],[0,11],[2,6],[2,8],[3,0],[3,7],[3,14],[6,2],[6,12],[7,3],[7,11],[8,2],[8,12],[11,0],[11,7],[11,14],[12,6],[12,8],[14,3],[14,11]];
@@ -553,7 +614,6 @@
     for(let [r,c] of DL) if(bonusMap[r][c] === "normal") bonusMap[r][c] = "dl";
     bonusMap[7][7] = "normal";
 
-    // ======================== БУКВЫ И МЕШОК ========================
     const lettersDB = [
         {letter:"А", points:1, freq:10},{letter:"Б", points:3, freq:3},{letter:"В", points:2, freq:5},{letter:"Г", points:3, freq:3},
         {letter:"Д", points:2, freq:5},{letter:"Е", points:1, freq:9},{letter:"Ё", points:3, freq:1},{letter:"Ж", points:5, freq:2},
@@ -569,7 +629,42 @@
     function takeTiles(n) { let tiles=[]; for(let i=0;i<n && letterBag.length;i++) tiles.push(letterBag.pop()); updateTilesLeft(); return tiles; }
     function updateTilesLeft() { document.getElementById("tilesLeft").innerText = letterBag.length; }
 
-    // ======================== GADDAG ========================
+
+
+    // ========== АВТОСОХРАНЕНИЕ В localStorage ==========
+    function saveGameToLocalStorage() {
+        const gameState = {
+            board: board,
+            humanHand: humanHand,
+            aiHand: aiHand,
+            scores: scores,
+            currentPlayer: currentPlayer,
+            letterBag: letterBag,
+            currentMoveTiles: currentMoveTiles,
+            version: "1.0"
+        };
+        localStorage.setItem("scrabbleGameSave", JSON.stringify(gameState));
+    }
+
+    function loadGameFromLocalStorage() {
+        const saved = localStorage.getItem("scrabbleGameSave");
+        if (!saved) return false;
+        try {
+            const gameState = JSON.parse(saved);
+            board = gameState.board;
+            humanHand = gameState.humanHand;
+            aiHand = gameState.aiHand;
+            scores = gameState.scores;
+            currentPlayer = gameState.currentPlayer;
+            letterBag = gameState.letterBag;
+            currentMoveTiles = gameState.currentMoveTiles || [];
+            selectedTileIndex = null;
+            selectedBoardTile = null;
+            clearHintHighlight();
+            return true;
+        } catch(e) { return false; }
+    }
+
     class GaddagNode { constructor() { this.children = {}; this.isEnd = false; } }
     class Gaddag {
         constructor() { this.root = new GaddagNode(); this.SEP = '>'; }
@@ -620,15 +715,15 @@
     let dictionary = new Gaddag();
     let dictLoaded = false;
 
-    // ======================== ИГРОВОЕ СОСТОЯНИЕ ========================
     let board = Array(15).fill().map(()=>Array(15).fill(null));
     let humanHand = [], aiHand = [];
     let scores = { human:0, ai:0 };
     let currentPlayer = "human";
-    let currentMoveTiles = [];         // массив {row, col, letter, points}
-    let selectedTileIndex = null;      // фишка в руке
-    let selectedBoardTile = null;      // {row, col} для фишки на доске
+    let currentMoveTiles = [];
+    let selectedTileIndex = null;
+    let selectedBoardTile = null;
     let currentHintCells = [];
+    const WIN_SCORE = 200;
 
     function updateUI() {
         document.getElementById("humanScore").innerText = scores.human;
@@ -639,12 +734,33 @@
         if(turnDiv) turnDiv.innerHTML = currentPlayer === "human" ? "⚡ Ход: Человек" : "🤖 Ход: Компьютер";
     }
 
+    function endGame(reason) {
+        currentPlayer = "none";
+        const status = document.getElementById("statusMsg");
+        status.style.color = "#ff4444";
+        status.style.fontWeight = "bold";
+        status.innerText = `ИГРА ОКОНЧЕНА: ${reason}`;
+        
+        let winner = scores.human > scores.ai ? "Вы победили!" : (scores.ai > scores.human ? "ИИ победил!" : "Ничья!");
+        alert(`ФИНАЛ\nПричина: ${reason}\n\nСчет: ${scores.human} - ${scores.ai}\n${winner}`);
+        return true;
+    }
+
+    function checkGameOver() {
+        if (letterBag.length === 0) {
+            if (humanHand.length === 0) return endGame("У игрока закончились буквы");
+            if (aiHand.length === 0) return endGame("У ИИ закончились буквы");
+        }
+        if (scores.human >= WIN_SCORE) return endGame("Игрок набрал 200 очков");
+        if (scores.ai >= WIN_SCORE) return endGame("ИИ набрал 200 очков");
+        return false;
+    }
+
     function clearHintHighlight() { 
         currentHintCells.forEach(c => { let td = document.querySelector(`td[data-row='${c.row}'][data-col='${c.col}']`); if(td) td.classList.remove("hint-cell"); }); 
         currentHintCells = []; 
     }
 
-    // Вернуть выделенную фишку с доски в руку
     function returnSelectedTileToHand() {
         if (!selectedBoardTile) {
             document.getElementById("statusMsg").innerText = "Нет выделенной фишки на доске";
@@ -657,11 +773,8 @@
             document.getElementById("statusMsg").innerText = "Эта фишка уже не может быть возвращена";
             return;
         }
-        // Удалить с доски
         board[selectedBoardTile.row][selectedBoardTile.col] = null;
-        // Вернуть в руку
         humanHand.push({ letter: tile.letter, points: tile.points });
-        // Удалить из currentMoveTiles
         let idx = currentMoveTiles.findIndex(t => t.row === selectedBoardTile.row && t.col === selectedBoardTile.col);
         if (idx !== -1) currentMoveTiles.splice(idx, 1);
         selectedBoardTile = null;
@@ -690,17 +803,14 @@
                         div.classList.add("selected-board-tile");
                     }
                     if(currentPlayer === "human" && tile.isNew && tile.player==="human") {
-                        // Левая кнопка - выделить/переместить
                         div.addEventListener("click", (e) => { e.stopPropagation(); selectBoardTile(i, j); });
-                        // Правая кнопка - вернуть в руку
                         div.addEventListener("contextmenu", (e) => {
                             e.preventDefault();
                             if (tile.isNew && tile.player === "human") {
-                                selectBoardTile(i, j); // сначала выделим
+                                selectBoardTile(i, j);
                                 returnSelectedTileToHand();
                             }
                         });
-                        // Drag & Drop для фишки на доске
                         div.setAttribute("draggable", "true");
                         div.addEventListener("dragstart", (e) => {
                             e.dataTransfer.setData("text/plain", JSON.stringify({
@@ -728,7 +838,6 @@
         }
     }
 
-    // Выделение фишки на доске
     function selectBoardTile(row, col) {
         if (currentPlayer !== "human") return;
         let tile = board[row][col];
@@ -736,7 +845,6 @@
             document.getElementById("statusMsg").innerText = "❌ Нельзя выбрать эту фишку";
             return;
         }
-        // Снимаем предыдущее выделение
         if (selectedBoardTile) {
             let prevTd = document.querySelector(`td[data-row='${selectedBoardTile.row}'][data-col='${selectedBoardTile.col}']`);
             if (prevTd) {
@@ -744,7 +852,6 @@
                 if (prevDiv) prevDiv.classList.remove('selected-board-tile');
             }
         }
-        // Если кликнули по той же фишке — снимаем выделение
         if (selectedBoardTile && selectedBoardTile.row === row && selectedBoardTile.col === col) {
             selectedBoardTile = null;
             document.getElementById("statusMsg").innerText = "Выделение снято";
@@ -752,7 +859,7 @@
             selectedBoardTile = { row, col };
             document.getElementById("statusMsg").innerText = `🔍 Выделена ${board[row][col].letter} на (${row},${col})`;
         }
-        renderBoard();  // обновляем стиль выделения
+        renderBoard();
     }
 
     function renderHumanHand() {
@@ -781,7 +888,6 @@
     function handleBoardClick(row, col) {
         if(currentPlayer !== "human") return;
 
-        // ---------- ПЕРЕМЕЩЕНИЕ ВЫДЕЛЕННОЙ ФИШКИ С ДОСКИ ----------
         if (selectedBoardTile !== null) {
             if (board[row][col] !== null) {
                 document.getElementById("statusMsg").innerText = "❌ Клетка занята!";
@@ -795,10 +901,8 @@
                 document.getElementById("statusMsg").innerText = "Ошибка: фишка больше не доступна";
                 return;
             }
-            // Перемещаем
             board[from.row][from.col] = null;
             board[row][col] = tileToMove;
-            // Обновляем currentMoveTiles
             let moveIndex = currentMoveTiles.findIndex(t => t.row === from.row && t.col === from.col);
             if (moveIndex !== -1) {
                 currentMoveTiles[moveIndex] = { row, col, letter: tileToMove.letter, points: tileToMove.points };
@@ -810,7 +914,6 @@
             return;
         }
 
-        // ---------- РАЗМЕЩЕНИЕ ИЗ РУКИ (старая логика) ----------
         if(selectedTileIndex !== null) {
             if(board[row][col] !== null) { document.getElementById("statusMsg").innerText = "❌ Клетка занята!"; return; }
             let tileData = humanHand[selectedTileIndex];
@@ -835,12 +938,10 @@
         if(!raw) return;
         let data = JSON.parse(raw);
 
-        // Перетаскивание фишки с доски
         if(data.type === "boardTile") {
             let { row: fromRow, col: fromCol, letter, points } = data;
             let tile = board[fromRow][fromCol];
             if (!tile || !tile.isNew || tile.player !== "human") return;
-            // Перемещаем
             board[fromRow][fromCol] = null;
             board[row][col] = { letter, points, isNew: true, player: "human" };
             let moveIndex = currentMoveTiles.findIndex(t => t.row === fromRow && t.col === fromCol);
@@ -854,7 +955,6 @@
             document.getElementById("statusMsg").innerText = `🔁 Перетащили ${letter} на (${row},${col})`;
             return;
         }
-        // Перетаскивание из руки
         else if(data.type === "handTile") {
             let { idx, letter, points } = data;
             if(idx===undefined || humanHand[idx]===undefined || humanHand[idx].letter !== letter) return;
@@ -864,21 +964,6 @@
             if(selectedTileIndex !== null) selectedTileIndex = null;
             renderBoard(); renderHumanHand();
             document.getElementById("statusMsg").innerText = `✨ Буква ${removed.letter} на (${row},${col})`;
-        }
-    }
-
-    // Возврат фишки с доски в руку (оставлено для совместимости, но используется контекстное меню)
-    function returnTileFromBoard(row,col) {
-        let tile = board[row][col];
-        if(tile && tile.isNew && tile.player==="human") {
-            board[row][col] = null;
-            humanHand.push({letter:tile.letter, points:tile.points});
-            let idx = currentMoveTiles.findIndex(t=>t.row===row && t.col===col);
-            if(idx!==-1) currentMoveTiles.splice(idx,1);
-            if(selectedBoardTile && selectedBoardTile.row === row && selectedBoardTile.col === col) selectedBoardTile = null;
-            clearHintHighlight();
-            renderBoard(); renderHumanHand();
-            document.getElementById("statusMsg").innerText = `↩️ Возвращена ${tile.letter}`;
         }
     }
 
@@ -996,7 +1081,11 @@
         currentMoveTiles = [];
         selectedTileIndex = null;
         selectedBoardTile = null;
+        
+        if (checkGameOver()) return true;
+        
         clearHintHighlight();
+        saveGameToLocalStorage();
         updateUI(); renderBoard(); if(currentPlayer==="human") renderHumanHand();
         document.getElementById("statusMsg").innerText = `✅ Ход завершён! +${score}`;
         return true;
@@ -1025,6 +1114,10 @@
         currentMoveTiles = [];
         updateUI(); renderBoard();
         document.getElementById("statusMsg").innerText = `🤖 ${best.placedWord.toUpperCase()} +${finalScore}`;
+        saveGameToLocalStorage();
+        
+        if (checkGameOver()) return;
+        
         setTimeout(()=> switchTurn(), 600);
     }
 
@@ -1032,6 +1125,7 @@
         if(!dictLoaded) return;
         if(currentPlayer === "human") {
             if(!await commitMove()) return;
+            if (checkGameOver()) return;
             if(letterBag.length===0 && humanHand.length===0) { alert(`Конец! ${scores.human>scores.ai?"Человек победил":"Компьютер победил"}`); return; }
             currentPlayer = "ai";
             updateUI(); renderHumanHand();
@@ -1039,6 +1133,7 @@
         } else {
             currentPlayer = "human";
             updateUI(); renderHumanHand();
+            saveGameToLocalStorage();
             document.getElementById("statusMsg").innerText = "Ваш ход! Кликните на букву → на клетку, или перемещайте фишки на доске";
         }
     }
@@ -1067,6 +1162,7 @@
         clearHintHighlight();
         updateUI(); renderBoard(); renderHumanHand();
         updateTilesLeft();
+        localStorage.removeItem("scrabbleGameSave");
         document.getElementById("statusMsg").innerText = "Новая игра! Ваш ход.";
     }
 
@@ -1078,128 +1174,95 @@
             let words = text.split(/\r?\n/).filter(w=>w.trim().length>1 && /^[а-яё]+$/i.test(w));
             for(let w of words) dictionary.addWord(w.toLowerCase());
             dictLoaded = true;
-            document.getElementById("statusMsg").innerText = `Словарь: ${words.length} слов. Игра готова.`;
-            resetGame();
+            if (!loadGameFromLocalStorage()) {
+                resetGame();
+                document.getElementById("statusMsg").innerText = `Словарь: ${words.length} слов. Игра готова.`;
+            } else {
+                updateUI();
+                renderBoard();
+                renderHumanHand();
+                updateTilesLeft();
+                document.getElementById("statusMsg").innerHTML = "📀 Игра восстановлена! Продолжаем...";
+            }
         } catch(e) { document.getElementById("statusMsg").innerText = "Ошибка: нет words.txt"; console.error(e); }
     }
-		// Функция пропуска хода с обменом и автоматическим возвратом фишек
-// 1. Открытие окна
-function openExchangeModal() {
-    if (currentPlayer !== "human") return;
 
-    // Сначала возвращаем фишки с поля в руку, если они там есть
-    if (currentMoveTiles.length > 0) {
-        currentMoveTiles.forEach(t => {
-            let tile = board[t.row][t.col];
-            if (tile && tile.isNew) {
-                humanHand.push({ letter: tile.letter, points: tile.points });
-                board[t.row][t.col] = null;
+    function openExchangeModal() {
+        if (currentPlayer !== "human") return;
+
+        if (currentMoveTiles.length > 0) {
+            for (let t of currentMoveTiles) {
+                let tileOnBoard = board[t.row][t.col];
+                if (tileOnBoard && tileOnBoard.isNew) {
+                    humanHand.push({ letter: tileOnBoard.letter, points: tileOnBoard.points });
+                    board[t.row][t.col] = null;
+                }
             }
-        });
-        currentMoveTiles = [];
+            currentMoveTiles = [];
+        }
+
+        const maxTiles = humanHand.length;
+        if (maxTiles === 0) {
+            document.getElementById("statusMsg").innerText = "❌ Нет фишек для обмена";
+            return;
+        }
+
+        const input = document.getElementById("exchangeCountInput");
+        input.max = maxTiles;
+        input.value = 1;
+        document.getElementById("exchangeText").innerText = `У вас ${maxTiles} фишек. Сколько меняем?`;
+        
         renderBoard();
         renderHumanHand();
+        saveGameToLocalStorage();
+        document.getElementById("exchangeModalWindow").style.display = "flex";
     }
 
-    const maxTiles = humanHand.length;
-    if (maxTiles === 0) {
-        alert("У вас нет фишек для обмена!");
-        return;
-    }
+    async function executeExchange() {
+        const input = document.getElementById("exchangeCountInput");
+        const count = parseInt(input.value);
+        const maxTiles = humanHand.length;
 
-    // Настраиваем лимиты в инпуте
-    const input = document.getElementById("exchangeCountInput");
-    input.max = maxTiles;
-    input.value = 1; // Сброс на 1 при открытии
-    
-    document.getElementById("exchangeText").innerText = `У вас ${maxTiles} фиш. Сколько меняем?`;
-    document.getElementById("exchangeModalWindow").style.display = "flex";
-}
-
-// Эту функцию ставим на кнопку "Пропуск" (skipTurnBtn)
-function openExchangeModal() {
-    if (currentPlayer !== "human") return;
-
-    // 1. Возвращаем фишки с поля в руку (ваша логика сохранения)
-    if (currentMoveTiles.length > 0) {
-        for (let t of currentMoveTiles) {
-            let tileOnBoard = board[t.row][t.col];
-            if (tileOnBoard && tileOnBoard.isNew) {
-                humanHand.push({ letter: tileOnBoard.letter, points: tileOnBoard.points });
-                board[t.row][t.col] = null;
-            }
+        if (isNaN(count) || count < 1 || count > maxTiles) {
+            alert(`Введите число от 1 до ${maxTiles}`);
+            return;
         }
-        currentMoveTiles = [];
-    }
 
-    const maxTiles = humanHand.length;
-    if (maxTiles === 0) {
-        document.getElementById("statusMsg").innerText = "❌ Нет фишек для обмена";
-        return;
-    }
+        document.getElementById("exchangeModalWindow").style.display = "none";
 
-    // Настраиваем окно под текущее кол-во фишек
-    const input = document.getElementById("exchangeCountInput");
-    input.max = maxTiles;
-    input.value = 1;
-    document.getElementById("exchangeText").innerText = `У вас ${maxTiles} фишек. Сколько меняем?`;
-    
-    renderBoard();
-    renderHumanHand();
-    document.getElementById("exchangeModalWindow").style.display = "flex";
-}
+        for (let i = 0; i < count; i++) {
+            const randomIndex = Math.floor(Math.random() * humanHand.length);
+            const tile = humanHand.splice(randomIndex, 1)[0];
+            letterBag.push(tile);
+        }
 
-// Эту функцию вызываем при нажатии "Заменить фишки" в модалке
-async function executeExchange() {
-    const input = document.getElementById("exchangeCountInput");
-    const count = parseInt(input.value);
-    const maxTiles = humanHand.length;
+        for (let i = letterBag.length - 1; i > 0; i--) {
+            let j = Math.floor(Math.random() * (i + 1));
+            [letterBag[i], letterBag[j]] = [letterBag[j], letterBag[i]];
+        }
 
-    if (isNaN(count) || count < 1 || count > maxTiles) {
-        alert(`Введите число от 1 до ${maxTiles}`);
-        return;
-    }
+        const newTiles = takeTiles(count);
+        humanHand.push(...newTiles);
 
-    // Закрываем окно
-    document.getElementById("exchangeModalWindow").style.display = "none";
+        selectedTileIndex = null;
+        selectedBoardTile = null;
+        clearHintHighlight();
+        document.getElementById("statusMsg").innerText = `🔄 Заменено ${count} фиш. Ход ИИ.`;
 
-    // --- ЛОГИКА ОБМЕНА (ваша) ---
-    for (let i = 0; i < count; i++) {
-        const randomIndex = Math.floor(Math.random() * humanHand.length);
-        const tile = humanHand.splice(randomIndex, 1)[0];
-        letterBag.push(tile);
-    }
-
-    // Перемешивание мешка
-    for (let i = letterBag.length - 1; i > 0; i--) {
-        let j = Math.floor(Math.random() * (i + 1));
-        [letterBag[i], letterBag[j]] = [letterBag[j], letterBag[i]];
-    }
-
-    // Добор
-    const newTiles = takeTiles(count);
-    humanHand.push(...newTiles);
-
-    // Сброс состояния
-    selectedTileIndex = null;
-    selectedBoardTile = null;
-    clearHintHighlight();
-    document.getElementById("statusMsg").innerText = `🔄 Заменено ${count} фиш. Ход ИИ.`;
-
-    updateUI();
-    renderBoard();
-    renderHumanHand();
-    updateTilesLeft();
-
-    // Автоматический переход к ИИ (async здесь нужен для await)
-    setTimeout(async () => {
-        currentPlayer = "ai";
         updateUI();
-        await aiMove();
-    }, 600);
-}
+        renderBoard();
+        renderHumanHand();
+        updateTilesLeft();
+        saveGameToLocalStorage();
+        if (checkGameOver()) return;
+        
+        setTimeout(async () => {
+            currentPlayer = "ai";
+            updateUI();
+            await aiMove();
+        }, 600);
+    }
 
-    // ======================== ПЕРЕТАСКИВАНИЕ ПАНЕЛИ ========================
     const panel = document.getElementById('floatingPanel');
     const dragHandle = document.getElementById('dragHandle');
     const resetPosBtn = document.getElementById('resetPosBtn');
@@ -1214,41 +1277,37 @@ async function executeExchange() {
         panel.style.cursor = 'grabbing';
         e.preventDefault();
     });
-	window.addEventListener('mousemove', (e) => {
-		// Если мы не в режиме перетаскивания или это телефон (<= 768px) — ничего не делаем
-		if (!isDragging || window.innerWidth <= 768) return; 
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging || window.innerWidth <= 768) return; 
 
-		let left = e.clientX - offsetX;
-		let top = e.clientY - offsetY;
+        let left = e.clientX - offsetX;
+        let top = e.clientY - offsetY;
 
-		// Ограничиваем панель рамками экрана
-		left = Math.min(window.innerWidth - panel.offsetWidth, Math.max(0, left));
-		top = Math.min(window.innerHeight - panel.offsetHeight, Math.max(0, top));
+        left = Math.min(window.innerWidth - panel.offsetWidth, Math.max(0, left));
+        top = Math.min(window.innerHeight - panel.offsetHeight, Math.max(0, top));
 
-		panel.style.left = left + 'px';
-		panel.style.top = top + 'px';
-		panel.style.right = 'auto';
-	});
+        panel.style.left = left + 'px';
+        panel.style.top = top + 'px';
+        panel.style.right = 'auto';
+    });
     window.addEventListener('mouseup', () => { isDragging = false; panel.style.cursor = 'grab'; });
     resetPosBtn.addEventListener('click', () => { panel.style.left = 'auto'; panel.style.right = '20px'; panel.style.top = '80px'; });
 
-    // ======================== ПОДКЛЮЧЕНИЕ КНОПОК ========================
     document.getElementById("endTurnBtn").addEventListener("click", ()=> { if(currentPlayer==="human") switchTurn(); });
     document.getElementById("resetGameBtn").addEventListener("click", resetGame);
     document.getElementById("clearSelectionBtn").addEventListener("click", ()=>{ selectedTileIndex=null; selectedBoardTile=null; renderHumanHand(); renderBoard(); document.getElementById("statusMsg").innerText="Выбор снят"; });
     document.getElementById("hintBtn").addEventListener("click", showHint);
     document.getElementById("returnToHandBtn").addEventListener("click", returnSelectedTileToHand);
-document.getElementById("skipTurnBtn").onclick = openExchangeModal;
-document.getElementById("confirmExchangeBtn").onclick = executeExchange;
-document.getElementById("cancelExchangeBtn").onclick = () => {
-document.getElementById("exchangeModalWindow").style.display = "none";
-};
+    document.getElementById("skipTurnBtn").onclick = openExchangeModal;
+    document.getElementById("confirmExchangeBtn").onclick = executeExchange;
+    document.getElementById("cancelExchangeBtn").onclick = () => {
+        document.getElementById("exchangeModalWindow").style.display = "none";
+    };
     const modal = document.getElementById("helpModal");
     document.getElementById("helpBtn").addEventListener("click", ()=>modal.style.display="flex");
     document.querySelector(".close-modal").addEventListener("click", ()=>modal.style.display="none");
     window.addEventListener("click", (e)=>{ if(e.target===modal) modal.style.display="none"; });
 
-    // Добавим индикатор хода в панель
     const turnDiv = document.createElement('div');
     turnDiv.id = "turnText";
     turnDiv.className = "turn-indicator";
@@ -1256,6 +1315,8 @@ document.getElementById("exchangeModalWindow").style.display = "none";
     panel.insertBefore(turnDiv, panel.querySelector('.hand-area'));
 
     loadDictionary();
+    // Автосохранение при закрытии страницы
+    window.addEventListener("beforeunload", saveGameToLocalStorage);
 </script>
 </body>
 </html>
